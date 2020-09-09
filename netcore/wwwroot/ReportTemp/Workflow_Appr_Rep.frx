@@ -1,0 +1,55 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Report ScriptLanguage="CSharp" ReportInfo.Created="07/31/2020 10:34:04" ReportInfo.Modified="07/31/2020 12:03:34" ReportInfo.CreatorVersion="2013.2.5.0">
+  <Dictionary>
+    <TableDataSource Name="Appr" ReferenceName="Data.Appr" DataType="System.Data.DataView, System.Data, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" Enabled="true">
+      <Column Name="标题" Alias="TITLE" DataType="System.String"/>
+      <Column Name="审批说明" Alias="NOTE" DataType="System.String"/>
+      <Column Name="提交部门" Alias="DEPT" DataType="System.String"/>
+      <Column Name="提交人" Alias="PERSON" DataType="System.String"/>
+      <Column Name="提交时间" Alias="APPLDATE" DataType="System.String"/>
+    </TableDataSource>
+    <TableDataSource Name="Table" ReferenceName="Data.Table" DataType="System.Data.DataView, System.Data, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" Enabled="true">
+      <Column Name="活动" Alias="ST" DataType="System.String"/>
+      <Column Name="审批意见" Alias="APPR_NOTE" DataType="System.String"/>
+      <Column Name="审批时间" Alias="APPR_DATE" DataType="System.String"/>
+      <Column Name="部门" Alias="APPL_DEPT" DataType="System.String"/>
+      <Column Name="岗位" Alias="APPR_POST_NAME" DataType="System.String"/>
+      <Column Name="审核人" Alias="APPR_PERSON" DataType="System.String"/>
+    </TableDataSource>
+  </Dictionary>
+  <ReportPage Name="Page1">
+    <ReportTitleBand Name="ReportTitle1" Width="718.2" Height="66.15">
+      <TextObject Name="Text1" Left="292.95" Top="9.45" Width="170.1" Height="28.35" Text="审批信息" HorzAlign="Center" Font="宋体, 18pt, style=Bold"/>
+      <TextObject Name="Text2" Left="9.45" Top="47.25" Width="75.6" Height="18.9" Text="部门：" Font="宋体, 12pt"/>
+      <TextObject Name="Text3" Left="85.05" Top="47.25" Width="623.7" Height="18.9" Text="[Appr.DEPT]" Font="宋体, 12pt"/>
+    </ReportTitleBand>
+    <PageHeaderBand Name="PageHeader1" Top="70.15" Width="718.2" Height="66.15">
+      <TextObject Name="Text4" Left="9.45" Top="9.45" Width="75.6" Height="18.9" Text="标题：" Font="宋体, 12pt"/>
+      <TextObject Name="Text5" Left="85.05" Top="9.45" Width="623.7" Height="18.9" Text="[Appr.TITLE]" Font="宋体, 12pt"/>
+      <TextObject Name="Text6" Left="9.45" Top="37.8" Width="75.6" Height="18.9" Text="说明：" Font="宋体, 12pt"/>
+      <TextObject Name="Text7" Left="85.05" Top="37.8" Width="623.7" Height="18.9" Text="[Appr.NOTE]" Font="宋体, 12pt"/>
+    </PageHeaderBand>
+    <ColumnHeaderBand Name="ColumnHeader1" Top="140.3" Width="718.2" Height="18.9">
+      <TextObject Name="Text8" Left="9.45" Width="75.6" Height="18.9" Border.Lines="All" Fill.Color="Gainsboro" Text="部门" HorzAlign="Center" Font="宋体, 12pt, style=Bold"/>
+      <TextObject Name="Text9" Left="85.05" Width="75.6" Height="18.9" Border.Lines="All" Fill.Color="Gainsboro" Text="岗位" HorzAlign="Center" Font="宋体, 12pt, style=Bold"/>
+      <TextObject Name="Text10" Left="160.65" Width="75.6" Height="18.9" Border.Lines="All" Fill.Color="Gainsboro" Text="审核人" HorzAlign="Center" Font="宋体, 12pt, style=Bold"/>
+      <TextObject Name="Text11" Left="236.25" Width="75.6" Height="18.9" Border.Lines="All" Fill.Color="Gainsboro" Text="活动" HorzAlign="Center" Font="宋体, 12pt, style=Bold"/>
+      <TextObject Name="Text12" Left="311.85" Width="255.15" Height="18.9" Border.Lines="All" Fill.Color="Gainsboro" Text="审批意见" HorzAlign="Center" Font="宋体, 12pt, style=Bold"/>
+      <TextObject Name="Text13" Left="567" Width="141.75" Height="18.9" Border.Lines="All" Fill.Color="Gainsboro" Text="审批时间" HorzAlign="Center" Font="宋体, 12pt, style=Bold"/>
+    </ColumnHeaderBand>
+    <DataBand Name="Data1" Top="163.2" Width="718.2" Height="37.8" DataSource="Table">
+      <TextObject Name="Text14" Left="9.45" Width="75.6" Height="37.8" Border.Lines="All" Text="[Table.APPL_DEPT]" HorzAlign="Center" VertAlign="Center" Font="宋体, 12pt"/>
+      <TextObject Name="Text15" Left="85.05" Width="75.6" Height="37.8" Border.Lines="All" Text="[Table.APPR_POST_NAME]" HorzAlign="Center" VertAlign="Center" Font="宋体, 12pt"/>
+      <TextObject Name="Text16" Left="160.65" Width="75.6" Height="37.8" Border.Lines="All" Text="[Table.APPR_PERSON]" HorzAlign="Center" VertAlign="Center" Font="宋体, 12pt"/>
+      <TextObject Name="Text17" Left="236.25" Width="75.6" Height="37.8" Border.Lines="All" Text="[Table.ST]" HorzAlign="Center" VertAlign="Center" Font="宋体, 12pt"/>
+      <TextObject Name="Text18" Left="311.85" Width="255.15" Height="37.8" Border.Lines="All" Text="[Table.APPR_NOTE]" HorzAlign="Center" VertAlign="Center" Font="宋体, 12pt"/>
+      <TextObject Name="Text19" Left="567" Width="141.75" Height="37.8" Border.Lines="All" Text="[Table.APPR_DATE]" HorzAlign="Center" VertAlign="Center" Font="宋体, 12pt"/>
+    </DataBand>
+    <ColumnFooterBand Name="ColumnFooter1" Top="205" Width="718.2" Height="37.8">
+      <TextObject Name="Text20" Left="9.45" Top="9.45" Width="75.6" Height="18.9" Text="提交人：" Font="宋体, 12pt"/>
+      <TextObject Name="Text21" Left="85.05" Top="9.45" Width="189" Height="18.9" Text="[Appr.PERSON]" Font="宋体, 12pt"/>
+      <TextObject Name="Text22" Left="425.25" Top="9.45" Width="94.5" Height="18.9" Text="提交时间：" Font="宋体, 12pt"/>
+      <TextObject Name="Text23" Left="519.75" Top="9.45" Width="189" Height="18.9" Text="[Appr.APPLDATE]" Font="宋体, 12pt"/>
+    </ColumnFooterBand>
+  </ReportPage>
+</Report>

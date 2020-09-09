@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.30413.136
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "netcore", "netcore\netcore.csproj", "{15DD2ECA-B08E-4923-8B15-FF7A326A9AD7}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Helper", "Helper\Helper.csproj", "{1E5CEAB5-2700-4F2A-A25D-03673911B4CF}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{15DD2ECA-B08E-4923-8B15-FF7A326A9AD7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{15DD2ECA-B08E-4923-8B15-FF7A326A9AD7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{15DD2ECA-B08E-4923-8B15-FF7A326A9AD7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{15DD2ECA-B08E-4923-8B15-FF7A326A9AD7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1E5CEAB5-2700-4F2A-A25D-03673911B4CF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1E5CEAB5-2700-4F2A-A25D-03673911B4CF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1E5CEAB5-2700-4F2A-A25D-03673911B4CF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1E5CEAB5-2700-4F2A-A25D-03673911B4CF}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {925EE7A1-6F44-4FA0-A10C-2E4469B9ED6D}
+	EndGlobalSection
+EndGlobal

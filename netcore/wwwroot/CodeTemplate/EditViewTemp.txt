@@ -1,0 +1,99 @@
+﻿
+@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+
+<html>
+<head>
+    <meta name="viewport" content="width=device-width" />
+    <title>EditDept</title>
+    <script src="~/js/jquery-3.2.1.min.js"></script>
+    <script src="~/js/do_function.js"></script>
+    <link href="~/layui/css/layui.css" rel="stylesheet" />
+    <script src="~/layui/layui.js"></script>
+</head>
+<body>
+    <form style="text-align:center;" class="layui-form">
+        <br />
+{ColName}
+
+        <div class="layui-form-item">
+            <div align="center">
+                <button class="layui-btn" lay-submit="" lay-filter="btnCommit">保存</button>
+                &nbsp;
+                <button class="layui-btn layui-btn-danger" onclick="btnClose()">关闭</button>
+            </div>
+        </div>
+    </form>
+    <script>
+        var layer, form;
+        layui.use(["layer", "form"], function () {
+            layer = layui.layer, form = layui.form;
+            form.render();
+            form.on("submit(btnCommit)", function (data) {
+{table_col}
+                var status = '@ViewBag.status';
+                var url = status == "add" ? '@Url.Action("Insert","{ControllerName}")' : '@Url.Action("Modify", "{ControllerName}")';
+                var data = status == "add" ?
+                    {
+{data_param}
+                    }
+                    :
+                    {
+{data_param}
+                    };
+                $.ajax({
+                    type: 'post',
+                    dataType: 'json',
+                    url: url,
+                    data: data,
+                    success: function (res) {
+                        if (res.code == "200") {
+                            parent.layer.close(parent.layer.getFrameIndex(window.name));
+                            parent.layer.msg(res.msg, {
+                                icon: 6
+                            });
+                            parent.Refresh();
+                            return false;
+                        } else {
+                            layer.msg(res.msg, { icon: 5 });
+                            return false;
+                        }
+                    },
+                    error: function () {
+                        layer.msg("接口出错，请联系管理员", { icon: 5 });
+                        return false;
+                    }
+                });
+                return false;
+            });
+        });
+        function btnClose() {
+            var index = parent.layer.getFrameIndex(window.name);
+            parent.layer.close(index);
+        }
+        $(document).ready(function () {
+            if ('@ViewBag.status' == "add") {
+                return;
+            }
+            $.ajax({
+                type: 'post',
+                dataType: 'json',
+                url: '@Url.Action("GetById", "{ControllerName}")',
+                data: { {PK}: @ViewBag.{PK} },
+                success: function (res) {
+                    if (res.code == 0) {
+{data_param_ready}
+                    }else{
+					layer.msg(res.msg, { icon: 5 });
+					}
+                }, error: function (res) {
+                    layer.msg("接口出错，请联系管理员", { icon: 5 });
+                }
+            });
+        });
+    </script>
+</body>
+</html>

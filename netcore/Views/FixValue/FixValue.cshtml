@@ -1,0 +1,337 @@
+﻿
+@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+
+<html>
+<head>
+    <meta name="viewport" content="width=device-width" />
+    <title>FixValue</title>
+    <script src="~/js/jquery-3.2.1.min.js"></script>
+    <script src="~/layui/layui.js"></script>
+    <link href="~/layui/css/layui.css" rel="stylesheet" />
+</head>
+<body>
+    <input type="hidden" id="hf" hidden="hidden" />
+    <div class="layui-row">
+        <div class="layui-col-md5">
+            <div class="layui-inline"></div>
+            <div class="layui-inline">
+                <div class="layui-input-inline">
+                    <input type="text" id="fixvalue_type" lay-verify="" placeholder="请输入类型编码或名称" class="layui-input" />
+                </div>
+                <div class="layui-inline">
+                    <a class="layui-btn layui-btn-sm" onclick="Refresh()" style="text-decoration:none;">查询</a>
+                </div>
+                <div class="layui-inline">
+                    <a class="layui-btn layui-btn-sm" onclick="btnAdd()" style="text-decoration:none;">新增</a>
+                </div>
+                <div class="layui-inline">
+                    <a class="layui-btn layui-btn-sm layui-btn-normal" onclick="btnEdit()" style="text-decoration:none;">编辑</a>
+                </div>
+                <div class="layui-inline">
+                <a class="layui-btn layui-btn-sm layui-btn-danger" onclick="btnDel()" style="text-decoration:none;">删除</a>
+                </div>
+                <div class="layui-inline">
+                    <a class="layui-btn layui-btn-sm layui-btn-danger" onclick="btnUorC()" style="text-decoration:none;">生效/失效</a>
+                </div>
+            </div>
+            <table id="table1" lay-filter="table1"></table>
+        </div>
+        <div class="layui-col-md7">
+            <div class="layui-inline"></div>
+            <div class="layui-inline">
+                <div class="layui-input-inline">
+                    <input type="text" id="fixvalue" lay-verify="" placeholder="请输入值或名称" class="layui-input" />
+                </div>
+                <div class="layui-inline">
+                    <a class="layui-btn layui-btn-sm" onclick="Refresh1()" style="text-decoration:none;">查询</a>
+                </div>
+                <div class="layui-inline">
+                    <a class="layui-btn layui-btn-sm" onclick="btnAdd1()" style="text-decoration:none;">新增</a>
+                </div>
+                <div class="layui-inline">
+                    <a class="layui-btn layui-btn-sm layui-btn-normal" onclick="btnEdit1()" style="text-decoration:none;">编辑</a>
+                </div>
+                <div class="layui-inline">
+                <a class="layui-btn layui-btn-sm layui-btn-danger" onclick="btnDel1()" style="text-decoration:none;">删除</a>
+                </div>
+                <div class="layui-inline">
+                    <a class="layui-btn layui-btn-sm layui-btn-danger" onclick="btnUorC1()" style="text-decoration:none;">生效/失效</a>
+                </div>
+            </div>
+            <table id="table2" lay-filter="table2"></table>
+        </div>
+    </div>
+    <script>
+        var table, ins, layer, form;
+        layui.use(['table', 'form'], function () {
+            table = layui.table;
+            layer = layui.layer;
+            form = layui.form;
+            //左表格渲染
+            table.render({
+                elem: '#table1'
+              , height: document.documentElement.clientHeight - 60
+              , url: '@Url.Action("GetFixValueType", "FixValue")',
+                where: {
+                    fixvalue: ""
+                }, method: 'get'
+                  , page: true //开启分页
+                    , limit: 20
+                , limits: [20, 30, 40, 50]
+                    , cols: [[ //表头
+                        { type: 'radio', fixed: 'left' }
+                        , { field: 'FixvalueTypeId', title: '公共代码类型ID', sort: true, hide: true }
+                        , { field: 'FixvalueTypeCode', title: '公共代码类型编码',  sort: true }
+                        , { field: 'FixvalueTypeName', title: '公共代码类型名称', sort: true }
+                        , { field: 'Status', title: '状态', sort: true }
+                    ]]
+            });
+            //右表格渲染
+            table.render({
+                elem: '#table2'
+                , height: document.documentElement.clientHeight - 60
+                , url: '@Url.Action("GetFixValue", "FixValue")',
+                where: {
+                    fixvalue: "",
+                    fixvaluetypeid: ""
+                }, method: 'get'
+                , page: true //开启分页
+                , limit: 20
+                , limits: [20, 30, 40, 50]
+                , cols: [[ //表头
+                    { type: 'checkbox', fixed: 'left' }
+                    , { field: 'FixvalueId', title: '公共代码ID', sort: true, hide: true }
+                    , { field: 'FixvalueTypeId', title: '公共代码类型ID', sort: true, hide: true }
+                    , { field: 'FixvalueCode', title: '值', sort: true }
+                    , { field: 'FixvalueName', title: '名称', sort: true }
+                    , { field: 'Note', title: '备注', sort: true }
+                    , { field: 'Status', title: '状态', sort: true }
+                ]]
+            });
+            //监听左表格 行单击事件
+            //table.on('row(table1)', function (obj) {
+            //    $("#hf").val(obj.data.FIXVALUE_TYPE_ID);
+            //    Refresh1();
+            //});
+            //监听左表格 行单击事件
+            table.on('radio(table1)', function (obj) {
+                $("#hf").val(obj.data.FixvalueTypeId);
+                Refresh1();
+            });
+        });
+        //左刷新
+        function Refresh() {
+            table.reload('table1', {
+                url: '@Url.Action("GetFixValueType", "FixValue")',
+                where: {
+                    fixvalue: $("#fixvalue_type").val()
+                },
+                method: 'get',
+                page: {
+                    curr: 1
+                }
+            });
+            Refresh1();
+        }
+        //右刷新
+        function Refresh1() {
+            table.reload('table2', {
+                url: '@Url.Action("GetFixValue", "FixValue")',
+                where: {
+                    fixvalue: $("#fixvalue").val(),
+                    fixvaluetypeid: $("#hf").val()
+                },
+                method: 'get',
+                page: {
+                    curr: 1
+                }
+            });
+        }
+        //左新增
+        function btnAdd() {
+            layer.open({
+                type: 2,
+                area: ["650px", "300px"],
+                title: "新增 - 公共代码类型",
+                content: '@Url.Action("FixValueTypeEdit", "FixValue")'+'?status=add'
+            });
+        }
+        //右新增
+        function btnAdd1() {
+            layer.open({
+                type: 2,
+                area: ["650px", "500px"],
+                title: "新增 - 公共代码",
+                content: '@Url.Action("FixValueEdit", "FixValue")' + '?status=add&type_id=' + $("#hf").val()
+            });
+        }
+
+         //左编辑
+        function btnEdit() {
+            var checkState = table.checkStatus('table1');
+            if (checkState.data.length > 0) {
+                if (checkState.data.length > 1) {
+                    layer.msg("编辑只能勾选单行数据", { icon: 5 }); return;
+                }
+                layer.open({
+                    type: 2,
+                    area: ["650px", "300px"],
+                    title: "编辑 - 公共代码类型",
+                    content: '@Url.Action("FixValueTypeEdit", "FixValue")' + '?status=update&Rowid=' + checkState.data[0].FixvalueTypeId
+                });
+            } else {
+                layer.msg("请勾选一行数据后再点击编辑按钮", { icon: 5 });
+            }
+        }
+        //右编辑
+        function btnEdit1() {
+            var checkState = table.checkStatus('table2');
+            if (checkState.data.length > 0) {
+                if (checkState.data.length > 1) {
+                    layer.msg("编辑只能勾选单行数据", { icon: 5 }); return;
+                }
+                layer.open({
+                    type: 2,
+                    area: ["650px", "500px"],
+                    title: "编辑 - 公共代码",
+                    content: '@Url.Action("FixValueEdit", "FixValue")' + '?status=update&Rowid=' + checkState.data[0].FixvalueId + '&type_id=' + checkState.data[0].FixvalueTypeId
+                });
+            } else {
+                layer.msg("请勾选一行数据后再点击编辑按钮", { icon: 5 });
+            }
+        }
+        //左删除
+        function btnDel() {
+            var checkStatus = table.checkStatus("table1");
+            if (checkStatus.data.length > 0) {
+                var obj = [];
+                layer.confirm('是否删除？', { btn: ['是', '否'], icon: 3, title: '提示' }, function (index) {
+                    for (var i = 0; i < checkStatus.data.length; i++) {
+                        obj.push(checkStatus.data[i].FixvalueTypeId);
+                    }
+                    $.ajax({
+                        type: 'Post',
+                        dataType: 'json',
+                        traditional: true,
+                        url: '@Url.Action("DeleteType", "FixValue")',
+                        data: {
+                            type_id: obj
+                        }, success: function (res) {
+                            if (res.code == "200") {
+                                layer.msg(res.msg, { icon: 6 });
+                                Refresh();
+                            } else {
+                                layer.msg(res.msg, { icon: 5 });
+                            }
+                        }, error: function () {
+                            layer.msg("接口出错，请联系管理员", { icon: 5 });
+                        }
+                    });
+                });
+            } else {
+                layer.msg("请选择数据", { icon: 5 });
+            }
+        }
+         //右删除
+        function btnDel1() {
+            var checkStatus = table.checkStatus("table2");
+            if (checkStatus.data.length > 0) {
+                var obj = [];
+                layer.confirm('是否删除？', { btn: ['是', '否'], icon: 3, title: '提示' }, function (index) {
+                    for (var i = 0; i < checkStatus.data.length; i++) {
+                        obj.push(checkStatus.data[i].FixvalueId);
+                    }
+                    $.ajax({
+                        type: 'Post',
+                        dataType: 'json',
+                        traditional: true,
+                        url: '@Url.Action("DeleteFixValue", "FixValue")',
+                        data: {
+                            fixvalue_id: obj
+                        }, success: function (res) {
+                            if (res.code == "200") {
+                                layer.msg(res.msg, { icon: 6 });
+                                Refresh1();
+                            } else {
+                                layer.msg(res.msg, { icon: 5 });
+                            }
+                        }, error: function () {
+                            layer.msg("接口出错，请联系管理员", { icon: 5 });
+                        }
+                    });
+                });
+            } else {
+                layer.msg("请选择数据", { icon: 5 });
+            }
+        }
+        //左生效/失效
+        function btnUorC() {
+            var checkStatus = table.checkStatus("table1");
+            if (checkStatus.data.length > 0) {
+                var obj = [];
+                layer.confirm('是否执行生效或失效（自动取反）？', { btn: ['是', '否'], icon: 3, title: '提示' }, function (index) {
+                    for (var i = 0; i < checkStatus.data.length; i++) {
+                        obj.push(checkStatus.data[i].FixvalueTypeId);
+                    }
+                    $.ajax({
+                        type: 'Post',
+                        dataType: 'json',
+                        traditional: true,
+                        url: '@Url.Action("ChangeFixValueTypeStatus", "FixValue")',
+                        data: {
+                            type_id: obj
+                        }, success: function (res) {
+                            if (res.code == 200) {
+                                layer.msg(res.msg, { icon: 6 });
+                                Refresh();
+                            } else {
+                                layer.msg(res.msg, { icon: 5 });
+                            }
+                        }, error: function () {
+                            layer.msg("接口出错，请联系管理员", { icon: 5 });
+                        }
+                    });
+                });
+            } else {
+                layer.msg("请选择数据", { icon: 5 });
+            }
+        }
+        //右生效/失效
+        function btnUorC1() {
+            var checkStatus = table.checkStatus("table2");
+            if (checkStatus.data.length > 0) {
+                var obj = [];
+                layer.confirm('是否执行生效或失效（自动取反）？', { btn: ['是', '否'], icon: 3, title: '提示' }, function (index) {
+                    for (var i = 0; i < checkStatus.data.length; i++) {
+                        obj.push(checkStatus.data[i].FixvalueId);
+                    }
+                    $.ajax({
+                        type: 'Post',
+                        dataType: 'json',
+                        traditional: true,
+                        url: '@Url.Action("ChangeFixValueStatus", "FixValue")',
+                        data: {
+                            fixvalue_id: obj
+                        }, success: function (res) {
+                            if (res.code == 200) {
+                                layer.msg(res.msg, { icon: 6 });
+                                Refresh1();
+                            } else {
+                                layer.msg(res.msg, { icon: 5 });
+                            }
+                        }, error: function () {
+                            layer.msg("接口出错，请联系管理员", { icon: 5 });
+                        }
+                    });
+                });
+            } else {
+                layer.msg("请选择数据", { icon: 5 });
+            }
+        }
+    </script>
+</body>
+</html>

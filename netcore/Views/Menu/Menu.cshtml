@@ -1,0 +1,188 @@
+﻿
+@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+
+<html>
+<head>
+    <meta name="viewport" content="width=device-width" />
+    <title>Menu</title>
+    <script src="~/js/jquery-3.2.1.min.js"></script>
+    <link href="~/layui/css/layui.css" rel="stylesheet" />
+    <script src="~/layui/layui.js"></script>
+    <link href="~/layui/treeTable/treeTable.css" rel="stylesheet" />
+</head>
+<body>
+    <div>
+        <br />
+        <div class="layui-inline">
+            <div class="layui-inline"></div>
+            <button class="layui-btn layui-btn-sm" id="btnAdd" onclick="Refresh()">刷新</button>
+            <button class="layui-btn layui-btn-sm" id="btnAdd" onclick="Add()">新增一级节点</button>
+        </div>
+        <table class="layui-hidden" id="table1" lay-filter="table1"></table>
+    </div>
+    <script>
+        layui.config({
+            base: '/layui/treeTable/'
+        }).extend({
+            treetable: 'treeTable'
+        });
+    </script>
+    <script>
+        var table, ins, layer, json, treetable,renderTable;
+
+        layui.use(["layer", "treeTable"], function () {
+            layer = layui.layer, treetable = layui.treeTable;
+            //操作按钮模板
+            var doTP = function (e) {
+                //var f = "<a class='layui-btn layui-btn-xs layui-btn-primary' onclick='Menu_Button_Show(" + e.id + ")'>分配按钮</a>";
+                var a = "<a class='layui-btn layui-btn-xs layui-btn-primary' onclick='Menu_Edit(" + e.MenuId + ",0,\"菜单\",0)'>新增子菜单</a>";
+                var b = "<a class='layui-btn layui-btn-xs layui-btn-primary' onclick='Menu_Edit(" + e.MenuId + ",0,\"界面\",0)'>新增子页面</a>";
+                var c = "<a class='layui-btn layui-btn-xs layui-btn-primary' onclick='Menu_Edit(" + e.MenuId + "," + e.pid + ",\"" + e.MenuType + "\",1)'>编辑</a>";
+                var d = "<a class='layui-btn layui-btn-xs layui-btn-primary' onclick='Menu_Del(" + e.MenuId + ",\"" + e.MenuType + "\")'>删除</a>";
+                return e.MenuType == "菜单" ? a + b + c + d : /*f +*/c + d;
+            };
+            //表格渲染
+            renderTable = function () {
+                treetable.render({
+                    elem: '#table1',//表格ID
+                    height: 'full-150',
+                    tree: {
+                        iconIndex: 0,
+                        isPidData: true,
+                        idName: 'MenuId',
+                        pidNmae: 'pid',
+                        openName:'MenuName'
+                    },
+                    cols: [
+                        { field: 'MenuName', title: '菜单名称', width: '30%'}
+                        , {
+                            field: 'MenuIcon', title: '菜单图标', width: 100, align: 'center', templet: function (d) {
+                                return '<i class="layui-icon ' + d.MenuIcon + '"></i>'
+                            }
+                        }
+                        , {
+                            field: 'MenuType', align: 'center', title: '菜单类型',
+                            templet: function (d) {
+                                return d.MenuType == "菜单" ? '<span style="color:darkorange;">菜单</span>' : '<span style="color:teal;">界面</span>';
+                            }, width: 100
+                        }
+                        , { field: 'MenuUrl', title: '链接地址' ,align:'center',width:150}
+                        , { field: 'MenuSort', title: '菜单排序', align: 'center', width: 100 }
+                        , { title: '操作', fixed: 'right', width: 400, templet: doTP }
+                    ], reqData: function (data, callback) {
+                        $.get('@Url.Action("GetAllMenu", "Menu")', function (res) {
+                            callback(res.data);
+                        });
+                    }
+                });
+            }
+            renderTable();
+        });
+
+    //菜单删除:type:0-菜单；1-界面
+        function Menu_Del(id, type) {
+            if (type == "菜单") {
+                layer.confirm('您已选中父节点，确认删除将删除所有子节点，确认删除吗？',
+                    { btn: ['是', '否'], icon: 3, title: '提示' }, function (index) {
+                        $.ajax({
+                            type: 'post',
+                            dataType: 'json',
+                            traditional: true,
+                            url: '@Url.Action("Delete", "Menu")',
+                            data: {
+                                id: id
+                            },
+                            success: function (res) {
+                                if (res.code == 200) {
+                                    layer.msg(res.msg, {
+                                        icon: 6
+                                    });
+                                    Refresh();
+                                } else {
+                                    layer.msg(res.msg, {
+                                        icon: 5
+                                    });
+                                }
+                            },
+                            error: function (res) {
+                                layer.msg("接口出错，请联系管理员", {
+                                    icon: 5
+                                });
+                            }
+                        });
+                    });
+            } else {
+                layer.confirm('确认删除该节点吗？',
+                    { btn: ['是', '否'], icon: 3, title: '提示' }, function (index) {
+                        $.ajax({
+                            type: 'post',
+                            dataType: 'json',
+                            traditional: true,
+                            url: '@Url.Action("Delete", "Menu")',
+                            data: {
+                                id: id
+                            },
+                            success: function (res) {
+                                if (res.code == 200) {
+                                    layer.msg(res.msg, {
+                                        icon: 6
+                                    });
+                                    Refresh();
+                                } else {
+                                    layer.msg(res.msg, {
+                                        icon: 5
+                                    });
+                                }
+                            },
+                            error: function (res) {
+                                layer.msg("接口出错，请联系管理员", {
+                                    icon: 5
+                                });
+                            }
+                        });
+                    });
+            }
+        }
+
+     //菜单新增、编辑:type:0-菜单；1-界面；zt:0-新增;1-编辑
+        function Menu_Edit(id, pid, type, zt) {
+            var url = '@Url.Action("MenuEdit","Menu")' + '?menuid=' + id + '&parentid=' + pid;
+            var title = zt == 0 ? "新增 - 菜单" : "编辑 - 菜单";
+            url = zt == 0 ? url + '&zt=add&type=' + type + '&isone=0' : url + '&zt=update&type=' + type + '&isone=1';
+            layer.open({
+                type: 2,
+                area: ["800px", "500px"],
+                title: title,
+                content: url
+            });
+        }
+        //按钮分配
+        function Menu_Button_Show(menuid) {
+            layer.open({
+                type: 2,
+                area: ["800px", "500px"],
+                title: '菜单 - 按钮 - 分配',
+                content: '@Url.Action("AllotButtonForMenu", "Button")' + '?menu_id=' + menuid
+            });
+        }
+        //新增一级菜单
+        function Add() {
+            var url = '@Url.Action("MenuEdit","Menu")' + '?parentid=0&menuid=&zt=add&isone=1';
+            layer.open({
+                type: 2,
+                area: ["800px", "500px"],
+                title: '新增 - 菜单',
+                content: url
+            });
+        }
+
+        function Refresh() {
+            renderTable();
+        }
+    </script>
+</body>
+</html>

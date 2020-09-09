@@ -1,0 +1,261 @@
+﻿
+@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+
+<html>
+<head>
+    <meta name="viewport" content="width=device-width" />
+    <title>新闻编辑</title>
+    <script src="~/js/jquery-3.2.1.min.js"></script>
+    <script src="~/layui/layui.js"></script>
+    <link href="~/layui/css/layui.css" rel="stylesheet" />
+    <style>
+        .tox .tox-dialog {
+            border: none;
+        }
+
+        .tox .tox-dialog,
+        .tox .tox-button,
+        .tox .tox-textarea,
+        .tox .tox-textfield,
+        .tox .tox-selectfield select,
+        .tox .tox-toolbar-textfield {
+            border-radius: 0;
+        }
+
+        .tox .tox-dialog-wrap__backdrop {
+            background-color: rgba(0, 0, 0, .3);
+        }
+    </style>
+</head>
+<body>
+    <div style="width: 90%;margin: 5px auto;" class="layui-form">
+        <br />
+        <div class="layui-form-item">
+            <label class="layui-form-label"><span style="color:red;">*</span>标题</label>
+            <div class="layui-input-block">
+                <input type="text" class="layui-input" lay-verify="required" id="NewsTitle" placeholder="请输入标题名称">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label"><span style="color:red;">*</span>作者</label>
+            <div class="layui-input-inline">
+                <input type="text" class="layui-input" id="NewsAuthor" lay-verify="required" placeholder="请输入作者名称">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label"><span style="color:red;">*</span>新闻类型</label>
+            <div class="layui-input-inline">
+                <select name="Type" id="typeSelect" lay-verify="" lay-filter="typeSelect" lay-search></select>
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label"><span style="color:red;"></span>封面图片</label>
+            <div class="layui-input-block">
+                <div class="layui-upload">
+                    <button type="button" class="layui-btn" id="imageUpload">上传图片</button>
+                    <div class="layui-upload-list">
+                        <img class="layui-upload-img" id="image" style="height:100px;width:100px;">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="layui-btn-group" style="margin-top: 10px">
+        @*<button class="layui-btn" lay-event="setContent">设置内容</button>*@
+        @*<button class="layui-btn" lay-event="show">预览</button>*@
+        <button class="layui-btn" lay-event="insertContent">插入内容</button>
+        <button class="layui-btn" lay-event="getContent">获取内容</button>
+        <button class="layui-btn" lay-event="getText">获取文本</button>
+        <button class="layui-btn" lay-event="clearContent">清空内容</button>
+        <button class="layui-btn" lay-event="reload">重载编辑器</button>
+        <button class="layui-btn" lay-event="destroy">销毁编辑器</button>
+        <button class="layui-btn" lay-event="render">加载编辑器</button>
+        <button class="layui-btn" lay-event="insert">保存</button>
+    </div>
+    <hr />
+    <textarea name="" id="edit"></textarea>
+    <script>
+        function GetNewsType(form) {
+            $.ajax({
+                type: 'get',
+                dataType: 'json',
+                url: '@Url.Action("GetNewsType", "News")',
+                success: function (res) {
+                    if (res.code == 0) {
+                        var one = "";
+                        $.each(res.data, function (index, item) {
+                            if (index == 0) {
+                                one = item.NewsTypeId;
+                            }
+                            $('#typeSelect').append('<option value="' + item.NewsTypeId + '">' + item.NewsTypeName + '</option>');
+                        });
+                        $("#typeSelect").val(one);
+                        form.render('select');
+                    } else {
+                        layer.msg(res.msg, {
+                            icon: 5
+                        });
+                    }
+                },
+                error: function (res) {
+                    layer.msg("请求接口出错，请联系管理员", {
+                        icon: 5
+                    });
+                }
+            });
+        }
+        var t, util, form, layer, upload;
+        layui.extend({
+            tinymce: '../tinymce'
+        }).use(['tinymce', 'util', 'layer', 'form', 'upload'], function () {
+            t = layui.tinymce;
+            util = layui.util;
+            form = layui.form;
+            layer = layui.layer;
+            upload = layui.upload;
+            GetNewsType(form);
+            upload.render({
+                elem: '#imageUpload' //绑定元素
+                , accept: 'images'
+                , acceptMime: 'image/*'
+                , auto: true //选择完图片后自动上传
+                , multiple: false
+                , url: '@Url.Action("UploadCoverImage","News")'
+                , done: function (res) {
+                    //上传完毕回调
+                    if (res.code = 200) {
+                        $("#image").attr("src", res.url);
+                    } else {
+                        layer.msg(res.msg, { icon: 5 });
+                    }
+                }
+                , error: function () {
+                    //请求异常回调
+                    layer.msg("请求接口出错，请联系管理员", { icon: 5 });
+                }
+            });
+
+            var edit = t.render({
+                elem: "#edit"
+                , height: 600
+            }, function (opt) {
+                //加载完成后回调
+                if ('@ViewBag.status' == 'add') {
+                    return;
+                }
+                $.ajax({
+                    type: 'get',
+                    dataType: 'json',
+                    url: '@Url.Action("GetNewsByIdNotAdd", "News")',
+                    data: { news_id: '@ViewBag.NewsId' },
+                    async: true,
+                    success: function (res) {
+                        if (res.code == 0) {
+                            $("#NewsTitle").val(res.data.NewsTitle);
+                            $("#NewsAuthor").val(res.data.NewsAuthor);
+                            //$("#NewsReleaseTime").append(res.data.NewsReleaseTime);
+                            //$("#NewsTypeName").append(res.data.NewsTypeName);
+                            //$("#BrowseNumber").append(res.data.BrowseNumber);
+                            if (res.data.NewsCoverImageUrl == null || res.data.NewsCoverImageUrl == "" || res.data.NewsCoverImageUrl == undefined) {
+
+                            } else {
+                                $("#image").attr("src", res.data.NewsCoverImageUrl);
+                            }                            
+                            $("#typeSelect").val(res.data.NewsTypeId);
+                            form.render('select');
+                            //不用setTimeout会有时候渲染不到内容
+                            setTimeout(function () {
+                                if (res.data.NewsContent.indexOf("&quot;") > -1) {
+                                    var reg = new RegExp("&quot;", "g");//g,表示全部替换。
+                                    t.get("#edit").setContent(res.data.NewsContent.replace(reg, "\""));
+                                } else {
+                                    t.get("#edit").setContent(res.data.NewsContent);
+                                }
+                            }, 300);
+
+                        } else {
+                            layer.msg(res.msg, { icon: 5 });
+                        }
+                    }, error: function (res) {
+                        layer.msg("接口出错，请联系管理员", { icon: 5 });
+                    }
+                });
+            });
+
+            util.event('lay-event', {
+                getContent: function () {
+                    var content = t.get('#edit').getContent()
+                    //console.log(content);
+                    layer.alert(content, { area: ['800px', '500px'] });
+                },
+                setContent: function () {
+                    t.get('#edit').setContent('点击按钮设置的内容：<span style="color: #e03e2d;">' + new Date() + '</span>');
+                },
+                clearContent: function () {
+                    t.get('#edit').setContent('');
+                },
+                insertContent: function () {
+                    t.get('#edit').insertContent('<b>我是插入内容，而且是加粗字体。</b>');
+                },
+                getText: function () {
+                    var text = t.get('#edit').getContent({ format: 'text' })
+                    layer.alert(text);
+                },
+                reload: function () {
+                    t.reload({
+                        elem: '#edit'
+                        // 所有参数都可以重新设置 ...
+                    }, function (opt) {
+                        //重载完成后回调函数，会把所有参数回传，
+                        //重载仅仅重新渲染编辑器，不会清空textarea，可手动清空或设置
+                        t.get('#edit').setContent('');
+                    })
+                },
+                destroy: function () {
+                    t.get('#edit').destroy();
+                },
+                render: function () {
+                    t.render({ elem: '#edit', height: '600px' })
+                },
+                insert: function () {
+                    var url = '@ViewBag.status' == "add" ? '@Url.Action("Insert","News")' : '@Url.Action("Modify","News")';
+                    $.ajax({
+                        type: 'post',
+                        dataType: 'json',
+                        url: url,
+                        data: {
+                            NewsId: '@ViewBag.NewsId',
+                            NewsTitle: $("#NewsTitle").val(),
+                            NewsTypeId: $('select[name="Type"] option:selected').val(),
+                            NewsAuthor: $("#NewsAuthor").val(),
+                            NewsCoverImageUrl: $("#image")[0].src,
+                            NewsContent: t.get('#edit').getContent()
+                        },
+                        success: function (res) {
+                            if (res.code == 200) {
+                                var index = parent.layer.getFrameIndex(window.name);
+                                parent.layer.close(index);
+                                parent.layer.msg(res.msg, {
+                                    icon: 6
+                                });
+                                parent.Refresh();
+                            } else {
+                                layer.msg(res.msg, { icon: 5 });
+                            }
+                        },
+                        error: function (res) {
+                            layer.msg("接口出错，请联系管理员", {
+                                icon: 5
+                            });
+                        }
+                    });
+                }
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,217 @@
+﻿
+@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+
+<html>
+<head>
+    <meta name="viewport" content="width=device-width" />
+    <link href="~/layuiadmin/layui/css/layui.css" rel="stylesheet" />
+
+    <link href="~/css/admin.css" rel="stylesheet" />
+    <link href="~/css/app.css" rel="stylesheet" />
+    <script src="~/js/jquery-3.2.1.min.js"></script>
+    <title>netcore</title>
+</head>
+<body class="layui-layout-body">
+    <div id="LAY_app">
+        <div class="layui-layout layui-layout-admin">
+            <div class="layui-header">
+                <!-- 头部区域 -->
+                <ul class="layui-nav layui-layout-left">
+                    <li class="layui-nav-item layadmin-flexible" lay-unselect>
+                        <a href="javascript:;" layadmin-event="flexible" title="侧边伸缩">
+                            <i class="layui-icon layui-icon-shrink-right" id="LAY_app_flexible"></i>
+                        </a>
+                    </li>
+                    <li class="layui-nav-item" lay-unselect>
+                        <a href="javascript:;" layadmin-event="refresh" title="刷新">
+                            <i class="layui-icon layui-icon-refresh-3"></i>
+                        </a>
+                    </li>
+                </ul>
+                <ul class="layui-nav layui-layout-right" lay-filter="layadmin-layout-right">
+                    <li class="layui-nav-item" lay-unselect>
+                        <a href="javascript:;">
+                            <cite>
+                                <i class="layui-icon layui-icon-notice" id="notice"></i>消息通知
+                            </cite>
+                        </a>
+
+                        <dl class="layui-nav-child">
+                            <dd style="text-align: center;">
+                                <a lay-href="/WorkFlow/Appr" lay-text="待办/已办">
+                                    待办审批<span class="layui-badge" id="appr"></span>
+                                </a>
+                            </dd>
+                        </dl>
+                    </li>
+                    <li class="layui-nav-item" lay-unselect>
+                        <a href="javascript:;">
+                            <cite>[@ViewBag.user_code]@ViewBag.user_name]</cite>
+                        </a>
+                        <dl class="layui-nav-child">
+                            <dd style="text-align: center;"><a lay-href="/User/UserView">基本资料</a></dd>
+                            <dd style="text-align: center;"><a lay-href="/User/ChangePassWord">修改密码</a></dd>
+                            <hr>
+                            <dd style="text-align: center;"><a onclick="LoginOut()">退出</a></dd>
+                        </dl>
+                    </li>
+                    <li class="layui-nav-item layui-hide-xs" lay-unselect>
+                        <a href="javascript:;"><i class="layui-icon layui-icon-more-vertical"></i></a>
+                    </li>
+                    <li class="layui-nav-item layui-show-xs-inline-block layui-hide-sm" lay-unselect>
+                        <a href="javascript:;"><i class="layui-icon layui-icon-more-vertical"></i></a>
+                    </li>
+                </ul>
+            </div>
+            <!-- 侧边菜单 -->
+            <div class="layui-side layui-side-menu">
+                <div class="layui-side-scroll">
+                    <div class="layui-logo">
+                        <a href="javascript:;" lay-tips="netcore" lay-direction="2">@*<i class="layui-icon layui-icon-website"></i>*@<span>netcore</span></a>
+                    </div>
+                    <ul class="layui-nav layui-nav-tree" lay-shrink="all" id="LAY-system-side-menu" lay-filter="layadmin-system-side-menu"></ul>
+                </div>
+            </div>
+            <!-- 页面标签 -->
+            <div class="layadmin-pagetabs" id="LAY_app_tabs">
+                <div class="layui-icon layadmin-tabs-control layui-icon-prev" layadmin-event="leftPage"></div>
+                <div class="layui-icon layadmin-tabs-control layui-icon-next" layadmin-event="rightPage"></div>
+                <div class="layui-icon layadmin-tabs-control layui-icon-down">
+                    <ul class="layui-nav layadmin-tabs-select" lay-filter="layadmin-pagetabs-nav">
+                        <li class="layui-nav-item" lay-unselect>
+                            <a href="javascript:;"></a>
+                            <dl class="layui-nav-child layui-anim-fadein">
+                                <dd layadmin-event="closeThisTabs"><a href="javascript:;">关闭当前标签页</a></dd>
+                                <dd layadmin-event="closeOtherTabs"><a href="javascript:;">关闭其它标签页</a></dd>
+                                <dd layadmin-event="closeAllTabs"><a href="javascript:;">关闭全部标签页</a></dd>
+                            </dl>
+                        </li>
+                    </ul>
+                </div>
+                <div class="layui-tab" lay-unauto lay-allowclose="true" lay-filter="layadmin-layout-tabs">
+                    <ul class="layui-tab-title" id="LAY_app_tabsheader">
+                        <li lay-id="/Main/Index" class="layui-this"><i class="layui-icon layui-icon-home"></i></li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- 主体内容 -->
+            <div class="layui-body" id="LAY_app_body">
+                <div class="layadmin-tabsbody-item layui-show">
+                    <iframe src="/Main/Index" frameborder="0" class="layadmin-iframe"></iframe>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="loadingPage" style="display: none;">
+        <div class="loading-shade"></div>
+        <div class="loading-content" onclick="$.loading(false)">数据加载中，请稍后…</div>
+    </div>
+    <style>
+        .layui-layer-btn .layui-layer-btn0 {
+            background: #5cb85c;
+            border: 1px solid #4cae4c;
+            color: #fff;
+        }
+
+        .layui-layer-btn .layui-layer-btn1 {
+            background: #d9534f;
+            border: 1px solid #d43f3a;
+            color: #fff;
+        }
+
+        .layui-layer-iframe .layui-layer-btn {
+            padding: 0px;
+            padding-top: 5px;
+            padding-right: 2px;
+            height: 35px;
+            text-align: right;
+            border: 0px solid #ccc;
+            border-top: none;
+            background-color: #f5f5f5;
+        }
+
+        .layui-layer-title {
+            margin: 0px;
+            padding: 0px;
+            height: 40px;
+            line-height: 40px;
+            font-size: 15px;
+            font-family: inherit;
+            padding-left: 16px;
+            border-bottom: 1px solid #ccc;
+            background-color: #fff;
+            border-top-left-radius: 6px;
+            border-top-right-radius: 6px;
+        }
+
+        .layui-layer-btn a {
+            margin: 0 5px;
+            padding: 0 20px;
+        }
+
+        .layui-form-label {
+            width: 80px;
+            padding: 2px 10px 0px 0px;
+        }
+    </style>
+    <script src="~/layuiadmin/layui/layui.js"></script>
+    <script src="~/layuiadmin/lib/indextab.js"></script>
+    <script>
+        layui.use(['table', 'form'], function () {
+            var table = layui.table;
+            var form = layui.form;
+            var layer = layui.layer;
+        });
+        $(document).ready(function () {
+            //RefreshNotice();
+        });
+
+        function RefreshNotice() {
+            $.ajax({
+                type: 'get',
+                dataType: 'json',
+                url: '@Url.Action("GetApprNotice", "Main")',
+                success: function (res) {
+                    if (res.code == 0) {
+                        if (res.count > 0) {
+                            $("#appr").show();
+                            $("#appr").html(res.count);
+                            $("#notice").css("color","red");
+                        } else {
+                            $("#appr").hide();
+                            $("#appr").html("");
+                            $("#notice").css("color","");
+                        }
+                    } else {
+                        $("#appr").hide();
+                        $("#appr").html("");
+                        layer.msg(res.msg, { icon: 5 });
+                    }
+                },
+                error: function () {
+                    layer.msg("获取审批通知信息出错，请联系管理员", { icon: 5 });
+                }
+            });
+        }
+    </script>
+    <script>
+        layui.config({
+            base: '/layuiadmin/' //静态资源所在路径
+        }).extend({
+            index: 'lib/index' //主入口模块
+        }).use('index');
+    </script>
+    <script>
+        function LoginOut() {
+            layer.confirm('确定退出登录吗？', { btn: ['是', '否'], icon: 3, title: '提示' }, function (index) {
+                window.location = "/Login/Index";
+            });
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,408 @@
+﻿
+@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+
+<html>
+<head>
+    <meta name="viewport" content="width=device-width" />
+    <title>Role</title>
+    <link href="~/layui/css/layui.css" rel="stylesheet" />
+    <script src="~/layui/layui.js"></script>
+    <script src="~/js/jquery-3.2.1.min.js"></script>
+</head>
+<body>
+    <input type="hidden" hidden="hidden" id="RoleId" />
+    <div class="layui-row">
+        <div class="layui-col-xs5">
+            <div class="layui-inline"></div>
+            <div class="layui-inline">
+                <div class="layui-input-inline">
+                    <input type="text" id="role_name" lay-verify="" placeholder="请输入角色名称" class="layui-input" />
+                </div>
+                <div class="layui-inline">
+                    <button class="layui-btn layui-btn-sm layui-btn-primary" onclick="Refresh()">查询</button>
+                </div>
+                <div class="layui-inline">
+                    <button class="layui-btn layui-btn-sm" onclick="btnAdd()">新增</button>
+                </div>
+                <div class="layui-inline">
+                    <button class="layui-btn layui-btn-sm layui-btn-normal" onclick="btnEdit()">编辑</button>
+                </div>
+                <div class="layui-inline">
+                    <button class="layui-btn layui-btn-sm layui-btn-danger" onclick="btnDel()">删除</button>
+                </div>
+                <div class="layui-inline">
+                    <button class="layui-btn layui-btn-sm" onclick="btnAllot()">分配用户</button>
+                </div>
+            </div>
+            <table id="table1" lay-filter="table1"></table>
+        </div>
+        <div class="layui-col-xs7">
+            <div class="layui-input-inline" style="margin-top:4px;">
+                <div class="layui-inline">
+                    <a class="layui-btn layui-btn-sm" onclick="btnCommit()">保存权限</a>
+                </div>
+                <div class="layui-inline">
+                    <a class="layui-btn layui-btn-sm layui-btn-danger" onclick="AcceptReset()">重置权限</a>
+                </div>
+            </div>
+            <br />
+            <div class="layui-inline" id="role_name_div">
+
+            </div>
+            <div id="tree" class="layui-tree" style="overflow:auto;"></div>
+        </div>
+    </div>
+    <script>
+        var layer, table,tree, json;
+        layui.use(['tree', 'layer', 'table'], function () {
+            tree = layui.tree, layer = layui.layer, table = layui.table;
+
+            //渲染表格
+            table.render({
+                elem: "#table1",
+                height: document.documentElement.clientHeight - 80,
+                url: '@Url.Action("GetRole","Role")',
+                where: {
+                    role_name: ''
+                },
+                method: 'get',
+                page: true,
+                limit: 20,
+                limits: [20, 30, 40, 50],
+                cols: [[
+                    { type: 'radio', fixed: 'left', widht: 35 },
+                    { field: 'RoleId', hide: true },
+                    { field: 'RoleName', title: '角色名称', sort: true }
+                ]], done: function () {
+                    $.ajax({
+                        type: 'get',
+                        dataType: 'json',
+                        url: '@Url.Action("GetRoleMenuTree", "Role")',
+                        data: { RoleId: '' },
+                        success: function (res) {
+                            tree.render({
+                                elem: '#tree'
+                                , data: res, onlyIconControl: true,
+                                showCheckbox: true
+                                , id: 'id', click: function (obj) {
+                                    var RoleId = $('#RoleId').val();
+                                    if (RoleId == "" || RoleId == null || RoleId == undefined) {
+                                        layer.msg("请单击左侧表格中的角色", { icon: 5 });
+                                        return;
+                                    }
+                                    if (obj.data.children.length > 0) {
+                                        layer.msg("父级节点无法分配按钮", { icon: 5 });
+                                        return;
+                                    }
+                                    layer.open({
+                                        type: 2,
+                                        area: ["800px", "500px"],
+                                        title: "分配 - 按钮",
+                                        content: '@Url.Action("AllotButton","Role")' + "?Rowid=" + $("#RoleId").val() + "&menu_id=" + obj.data.id
+                                    });
+                                }
+                            });
+                        }, error: function (res) {
+                            layer.msg("加载角色菜单时接口出错，请联系管理员", { icon: 5 });
+                        }
+                    });
+                }
+            });
+            //渲染树
+            tree.render({
+                elem: '#tree',
+                data: json,
+                showLine: true,
+                id: 'id',
+                showCheckbox: true,
+                onlyIconControl: true,
+                text: {
+                    none: '无数据'
+                }, click: function (obj) {
+                    var RoleId = $('#RoleId').val();
+                    if (RoleId == "" || RoleId == null || RoleId == undefined) {
+                        layer.msg("请单击左侧表格中的角色", { icon: 5 });
+                        return;
+                    }
+                    if (obj.data.children.length > 0) {
+                        layer.msg("父级节点无法分配按钮", { icon: 5 });
+                        return;
+                    }
+                    layer.open({
+                        type: 2,
+                        area: ["800px", "500px"],
+                        title: "分配 - 按钮",
+                        content: '@Url.Action("AllotButton","Role")' + "?Rowid=" + $("#RoleId").val() + "&menu_id=" + obj.data.id
+                    });
+                }
+            });
+
+            //监听左表格 行单击事件
+            table.on('radio(table1)', function (obj) {
+                $.ajax({
+                    type: 'get',
+                    dataType: 'json',
+                    url: '@Url.Action("GetRoleMenuTree", "Role")',
+                    data: { RoleId: obj.data.RoleId },
+                    success: function (res) {
+                        $("#RoleId").val(obj.data.RoleId);
+                        tree.render({
+                            elem: '#tree'
+                            , data: res, onlyIconControl: true,
+                            showCheckbox: true
+                            , id: 'id', click: function (obj) {
+                                var RoleId = $('#RoleId').val();
+                                if (RoleId == "" || RoleId == null || RoleId == undefined) {
+                                    layer.msg("请单击左侧表格中的角色", { icon: 5 });
+                                    return;
+                                }
+                                if (obj.data.children.length > 0) {
+                                    layer.msg("父级节点无法分配按钮", { icon: 5 });
+                                    return;
+                                }
+                                layer.open({
+                                    type: 2,
+                                    area: ["800px", "500px"],
+                                    title: "分配 - 按钮",
+                                    content: '@Url.Action("AllotButton","Role")' + "?Rowid=" + $("#RoleId").val() + "&menu_id=" + obj.data.id
+                                });
+                            }
+                        });
+                    }, error: function (res) {
+                        layer.msg("加载角色菜单接口出错，请联系管理员", { icon: 5 });
+                    }
+                });
+            });
+        });
+        function Refresh() {
+            table.reload("table1", {
+                url: '@Url.Action("GetRole","Role")',
+                where: {
+                    role_name: $("#role_name").val()
+                }, method: "get",
+                page: {
+                    curr: 1
+                }, done: function () {
+                    $.ajax({
+                        type: 'get',
+                        dataType: 'json',
+                        url: '@Url.Action("GetRoleMenuTree", "Role")',
+                        data: { RoleId: '' },
+                        success: function (res) {
+                            tree.render({
+                                elem: '#tree'
+                                , data: res, onlyIconControl: true,
+                                showCheckbox: true
+                                , id: 'id', click: function (obj) {
+                                    var RoleId = $('#RoleId').val();
+                                    if (RoleId == "" || RoleId == null || RoleId == undefined) {
+                                        layer.msg("请单击左侧表格中的角色", { icon: 5 });
+                                        return;
+                                    }
+                                    if (obj.data.children.length > 0) {
+                                        layer.msg("父级节点无法分配按钮", { icon: 5 });
+                                        return;
+                                    }
+                                    layer.open({
+                                        type: 2,
+                                        area: ["800px", "500px"],
+                                        title: "分配 - 按钮",
+                                        content: '@Url.Action("AllotButton","Role")' + "?Rowid=" + $("#RoleId").val() + "&menu_id=" + obj.data.id
+                                    });
+                                }
+                            });
+                        }, error: function (res) {
+                            layer.msg("加载角色菜单时接口出错，请联系管理员", { icon: 5 });
+                        }
+                    });
+                }
+            });
+        }
+
+        function ReloadTree() {
+            var checkState = table.checkStatus('table1');
+            if (checkState.data.length > 0) {
+                $.ajax({
+                    type: 'get',
+                    dataType: 'json',
+                    url: '@Url.Action("GetRoleMenuTree", "Role")',
+                    data: { RoleId: checkState.data[0].RoleId },
+                    success: function (res) {
+                        tree.render({
+                            elem: '#tree'
+                            , data: res, onlyIconControl: true,
+                            showCheckbox: true
+                            , id: 'id', click: function (obj) {
+                                var RoleId = $('#RoleId').val();
+                                if (RoleId == "" || RoleId == null || RoleId == undefined) {
+                                    layer.msg("请单击左侧表格中的角色", { icon: 5 });
+                                    return;
+                                }
+                                if (obj.data.children.length > 0) {
+                                    layer.msg("父级节点无法分配按钮", { icon: 5 });
+                                    return;
+                                }
+                                layer.open({
+                                    type: 2,
+                                    area: ["800px", "500px"],
+                                    title: "分配 - 按钮",
+                                    content: '@Url.Action("AllotButton","Role")' + "?Rowid=" + $("#RoleId").val() + "&menu_id=" + obj.data.id
+                                });
+                            }
+                        });
+                    }, error: function (res) {
+                        layer.msg("加载角色菜单时接口出错，请联系管理员", { icon: 5 });
+                    }
+                });
+            }
+        }
+        $(document).ready(function () {
+            $("#tree").height(document.documentElement.clientHeight - 50);
+        });
+        function btnAdd() {
+            layer.open({
+                type: 2,
+                area: ["600px", "200px"],
+                title: "新增 - 角色",
+                content: '@Url.Action("RoleEdit","Role")' + "?status=Add&Rowid="
+            });
+        }
+
+        function btnEdit() {
+            var checkState = table.checkStatus('table1');
+            if (checkState.data.length > 0) {
+                if (checkState.data.length > 1) {
+                    layer.msg("编辑只能勾选单行数据", { icon: 5 }); return;
+                }
+                layer.open({
+                    type: 2,
+                    area: ["600px", "200px"],
+                    title: "编辑 - 角色",
+                    content: '@Url.Action("RoleEdit", "Role")' + "?status=Edit&Rowid=" + checkState.data[0].RoleId
+                });
+            } else {
+                layer.msg("请勾选一行数据后再点击编辑按钮", { icon: 5 });
+            }
+        }
+
+        function btnDel() {
+            var checkState = table.checkStatus('table1');
+            if (checkState.data.length > 0) {
+                var obj = [];
+                layer.confirm("确定删除勾选的数据吗？", { btn: ["是", "否"], icon: 3, title: '提示' }, function () {
+                    for (var i = 0; i < checkState.data.length; i++) {
+                        obj.push(checkState.data[i].RoleId);
+                    }
+                    $.ajax({
+                        type: 'Post',
+                        dataType: 'json',
+                        traditional: true,
+                        url: '@Url.Action("Delete","Role")',
+                        data: {
+                            id: obj
+                        }, success: function (res) {
+                            if (res.code == 200) {
+                                layer.msg(res.msg, { icon: 6 });
+                                Refresh();
+                            } else {
+                                layer.msg(res.msg, { icon: 5 });
+                            }
+                        }, error: function () {
+                            layer.msg("接口出错，请联系管理员", { icon: 5 });
+                        }
+                    });
+                });
+            } else {
+                layer.msg("请勾选数据后再点击删除按钮", { icon: 5 });
+            }
+        }
+
+        function btnAllot() {
+             var checkState = table.checkStatus('table1');
+            if (checkState.data.length > 0) {
+                if (checkState.data.length > 1) {
+                    layer.msg("分配用户只能勾选单行数据", { icon: 5 }); return;
+                }
+                layer.open({
+                    type: 2,
+                    area: ["1000px", "500px"],
+                    title: "分配 - 用户",
+                    content: '@Url.Action("AllotUser", "Role")' + "?Rowid=" + checkState.data[0].RoleId
+                });
+            } else {
+                layer.msg("请勾选一行数据后再点击分配按钮", { icon: 5 });
+            }
+        }
+        var menu_id = [];
+        //保存权限
+        function btnCommit() {
+            layer.confirm('确认保存吗？', { btn: ['是', '否'], icon: 3, title: '提示' }, function (index) {
+            var checkData = tree.getChecked('id');
+            for (var i = 0; i < checkData.length; i++) {
+                menu_id.push(checkData[i].id );
+                getTreeIds(checkData[i].children);
+            }
+                $.ajax({
+                    type: 'Post',
+                    dataType: 'json',
+                    traditional: true,
+                    url: '@Url.Action("SaveRole","Role")',
+                    data: {
+                        menu_id: menu_id,
+                        RoleId: $("#RoleId").val()
+                    }, success: function (res) {
+                        if (res.code == 200) {
+                            menu_id = [];
+                            layer.msg(res.msg, { icon: 6 });
+                            ReloadTree();
+                        } else {
+                            menu_id = [];
+                            layer.msg(res.msg, { icon: 5});
+                        }
+                    }, error: function () {
+                        menu_id =[];
+                        layer.msg("接口出错，请联系管理员", { icon: 5 });
+                    }
+                });
+            });
+            menu_id = [];
+        }
+        //获取节点
+        function getTreeIds(obj) {
+            for (var i = 0; i < obj.length; i++) {
+                menu_id.push(obj[i].id);// += obj[i].id + ",";
+                if (obj[i].children) {
+                    getTreeIds(obj[i].children);
+                }
+            }
+        }
+        //重置权限
+        function AcceptReset() {
+            layer.confirm('确认重置权限吗？', { btn: ['是', '否'], icon: 3, title: '提示' }, function (index) {
+                $.ajax({
+                    type: 'Post',
+                    dataType: 'json',
+                    traditional: true,
+                    url: '@Url.Action("AcceptReset", "Role")',
+                    data: {
+                        RoleId: $("#RoleId").val()
+                    }, success: function (res) {
+                        if (res.code == 200) {
+                            layer.msg(res.msg, { icon: 6 });
+                            ReloadTree();
+                        } else {
+                            layer.msg(res.msg, { icon: 5 });
+                        }
+                    }, error: function () {
+                        layer.msg("接口出错，请联系管理员", { icon: 5 });
+                    }
+                });
+            });
+        }
+    </script>
+</body>
+</html>

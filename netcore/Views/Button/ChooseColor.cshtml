@@ -1,0 +1,47 @@
+﻿
+@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+
+<html>
+<head>
+    <meta name="viewport" content="width=device-width" />
+    <title>ChooseColor</title>
+    <link href="~/layui/css/layui.css" rel="stylesheet" />
+    <script src="~/layui/layui.js"></script>
+    <script src="~/js/jquery-3.2.1.min.js"></script>
+    <script>
+        layui.use(["form", "layer"], function () {
+            var form = layui.form, layer = layui.layer;
+        });
+        function choose(i) {
+            var color;
+            switch (i) {
+                case 1: color = "layui-btn-primary";  break;
+                case 2: color = "";  break;
+                case 3: color = "layui-btn-normal";  break;
+                case 4: color = "layui-btn-warm";  break;
+                case 5: color = "layui-btn-danger"; break;
+            }
+            parent.$("#button_color").val(color);
+            parent.layer.close(parent.layer.getFrameIndex(window.name));
+        }
+    </script>
+</head>
+<body>
+    <div>
+        <fieldset class="layui-elem-field" style="margin-top:30px;">
+            <legend>按钮</legend>
+            <div>
+                <button type="button" class="layui-btn layui-btn-primary" onclick="choose(1)">原始按钮</button>
+                <button type="button" class="layui-btn" onclick="choose(2)">默认按钮</button>
+                <button type="button" class="layui-btn layui-btn-normal" onclick="choose(3)">百搭按钮</button>
+                <button type="button" class="layui-btn layui-btn-warm" onclick="choose(4)">暖色按钮</button>
+                <button type="button" class="layui-btn layui-btn-danger" onclick="choose(5)">警告按钮</button>
+            </div>
+        </fieldset>
+    </div>
+</body>
+</html>

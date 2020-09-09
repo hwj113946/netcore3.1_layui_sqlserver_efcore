@@ -1,0 +1,111 @@
+﻿
+@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+
+<html>
+<head>
+    <meta name="viewport" content="width=device-width" />
+    <title>FixValueTypeEdit</title>
+    <script src="~/js/jquery-3.2.1.min.js"></script>
+    <script src="~/layui/layui.js"></script>
+    <link href="~/layui/css/layui.css" rel="stylesheet" />
+</head>
+<body>
+    <div class="layui-form">
+        <br />
+        <div class="layui-form-item">
+            <div class="layui-inline">
+                <label class="layui-form-label"><span style="color:red;">*</span>类型编码</label>
+                <div class="layui-input-inline">
+                    <input type="text" class="layui-input" lay-verify="required" id="code" placeholder="请输入类型编码">
+                </div>
+                <label class="layui-form-label"><span style="color:red;">*</span>类型名称</label>
+                <div class="layui-input-inline">
+                    <input type="text" class="layui-input" id="name" lay-verify="required" placeholder="请输入类型名称">
+                </div>
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <div align="center">
+                <button class="layui-btn" lay-submit="" lay-filter="btnCommit">保存</button>
+                &nbsp;
+                <button class="layui-btn layui-btn-danger" onclick="btnClose()">关闭</button>
+            </div>
+        </div>
+    </div>
+    <script>
+        var layer, form;
+        layui.use(["layer", "form"], function () {
+            layer = layui.layer, form = layui.form;
+            form.render();
+
+            form.on("submit(btnCommit)", function (data) {
+                var code = $("#code").val();
+                var name = $("#name").val();
+                var status = '@ViewBag.status';
+                var url = status == "add" ? '@Url.Action("InsertFixValueType", "FixValue")' : '@Url.Action("ModifyFixValueType", "FixValue")';
+                var datas = status == "add" ? { code: code, name: name} : { code: code, name: name, type_id: '@ViewBag.type_id' };
+                $.ajax({
+                    type: 'post',
+                    dataType: 'json',
+                    url: url,
+                    data: datas,
+                    success: function (res) {
+                        if (res.code == 200) {
+                            var index = parent.layer.getFrameIndex(window.name);
+                            parent.layer.close(index);
+                            parent.layer.msg(res.msg, {
+                                icon: 6
+                            });
+                            parent.Refresh();
+                            return false;
+                        } else {
+                            layer.msg(res.msg, {
+                                icon: 5
+                            });
+                            return false;
+                        }
+                    },
+                    error: function (res) {
+                        parent.layer.msg("接口出错，请联系管理员", {
+                            icon: 5
+                        });
+                        return false;
+                    }
+                });
+                return false;
+            });
+        });
+
+        function btnClose() {
+            var index = parent.layer.getFrameIndex(window.name);
+            parent.layer.close(index);
+        }
+
+        $(document).ready(function () {
+            if ('@ViewBag.status' =="add") {
+                return;
+            }
+            $.ajax({
+                type: 'get',
+                dataType: 'json',
+                url: '@Url.Action("GetFixValueTypeById", "FixValue")',
+                data: { type_id: '@ViewBag.type_id' },
+                success: function (res) {
+                    if (res.code == 0) {
+                        $("#code").val(res.data.FixvalueTypeCode);
+                        $("#name").val(res.data.FixvalueTypeName);
+                    } else {
+                        layer.msg(res.msg, { icon: 5 });
+                    }
+                }, error: function (res) {
+                    layer.msg("接口出错，请联系管理员", {icon:5});
+                }
+            });
+        });
+    </script>
+</body>
+</html>

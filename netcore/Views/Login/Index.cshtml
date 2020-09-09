@@ -1,0 +1,147 @@
+﻿
+@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+
+<html>
+<head>
+    <meta name="viewport" content="width=device-width" />
+    <title>netcore</title>
+    <script src="~/layuiadmin/layui/layui.js"></script>
+    <link href="~/layuiadmin/layui/css/layui.css" rel="stylesheet" />
+    <link href="~/css/login.css" rel="stylesheet" />
+    <script src="~/js/jquery-3.2.1.min.js"></script>
+    <script>
+        window.onload = function () {
+            $("body").keydown(function () {
+                if (event.keyCode == "13") {
+                    $('button').click();
+                }
+            });
+        }
+        layui.use(['layer', 'form'], function () {
+            var form = layui.form,
+                $ = layui.jquery;
+            var layer = layui.layer;
+
+            form.on('submit(login_hash)', function (data) {
+                $("#login_hash").addClass("layui-btn-disabled");
+                $("#login_hash").text("登录中...");
+                loginName = data.field.loginName;
+                password = data.field.password;
+                $.ajax({
+                    url: "@Url.Action("Login", "Login")",
+                    data: { loginName: data.field.loginName, password: data.field.password },
+                    type: "post",
+                    dataType: "json",
+                    success: function (r) {
+                        if (r.code == 1) {
+                            $("#login_hash").removeClass("layui-btn-disabled");
+                            $("#login_hash").text("登录");
+                            layer.msg(r.msg, { icon: 2 });
+                            return false;
+                        } else if (r.code == 0) {
+                            //SaveCookie();
+                            $("#login_hash").text("登录成功，正在跳转中...");
+                            window.setTimeout(function () {
+                                window.location = r.url;
+                            }, 300);
+
+                        }
+                    }, error: function (r) {
+                        $("#login_hash").removeClass("layui-btn-disabled");
+                        $("#login_hash").text("登录");
+                        layer.msg("登录出错，请联系管理员", { icon: 2 });
+                        return false;
+                    }
+                });
+                return false;
+            });
+        });
+
+
+        function SaveCookie() {
+            var ischeck = $("#rememberMe").is(':checked');
+            if (ischeck) {
+
+                SetCookie("loginName", loginName)
+                SetCookie("password", password)
+            } else {
+                DeleteCookie("loginName");
+                DeleteCookie("password");
+            }
+        };
+        function getCookie(cname) {
+            var name = cname + "=";
+            var ca = document.cookie.split(';');
+            for (var i = 0; i < ca.length; i++) {
+                var c = ca[i].trim();
+                if (c.indexOf(name) == 0) return c.substring(name.length, c.length);
+            }
+            return "";
+        }
+        function SetCookie(cname, cvalue) {
+            var d = new Date();
+            d.setTime(d.getTime() + (7 * 24 * 60 * 60 * 1000));
+            var expires = "expires=" + d.toGMTString();
+            document.cookie = cname + "=" + cvalue + "; " + expires;
+        }
+
+        function DeleteCookie(cname) {
+            var d = new Date();
+            d.setTime(d.getTime() - 100);
+            var expires = "expires=" + d.toGMTString();
+            var cval = getCookie(cname);
+            document.cookie = cname + "=" + cval + "; " + expires;
+        }
+
+        function ShowChangePassWord() {
+            layer.msg("请联系系统管理员", {icon:5});
+        }
+        $(function () {
+            if (window != top) {
+                top.location.href = location.href;
+            }
+            $("#loginName").focus();
+        });
+    </script>
+</head>
+<body>
+    <div class="kit-login">
+        <div class="kit-login-bg"></div>
+        <div class="kit-login-wapper">
+            <div class="kit-login-form">
+                <h4 class="kit-login-title">netcore</h4>
+                <form class="layui-form">
+                    <div class="kit-login-row">
+                        <div class="kit-login-col">
+                            <i class="layui-icon">&#xe612;</i>
+                            <span class="kit-login-input">
+                                <input type="text" id="loginName" name="loginName" lay-verify="required" placeholder="账户" autocomplete="off" value="admin" />
+                            </span>
+                        </div>
+                        <div class="kit-login-col"></div>
+                    </div>
+                    <div class="kit-login-row">
+                        <div class="kit-login-col">
+                            <i class="layui-icon">&#xe64c;</i>
+                            <span class="kit-login-input">
+                                <input type="password" id="password" name="password" lay-verify="required" placeholder="密码" autocomplete="off" value="klapp" />
+                            </span>
+                        </div>
+                        <div class="kit-login-col"></div>
+                    </div>
+                    <div class="kit-login-row">
+                        <button name="login" class="layui-btn kit-login-btn" lay-submit="submit" id="login_hash" lay-filter="login_hash">登录</button>
+                    </div>
+                    <div class="kit-login-row" style="margin-bottom:0;">
+                        <a href="javascript:;" style="color: rgb(153, 153, 153); text-decoration: none; font-size: 13px;" id="forgot" onclick="javascript:ShowChangePassWord()">忘记密码?</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

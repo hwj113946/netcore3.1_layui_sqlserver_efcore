@@ -1,0 +1,361 @@
+﻿
+@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+
+<html>
+<head>
+    <meta name="viewport" content="width=device-width" />
+    <title>Corp</title>
+    <script src="~/js/jquery-3.2.1.min.js"></script>
+    <link href="~/layui/css/layui.css" rel="stylesheet" />
+    <script src="~/layui/layui.js"></script>
+</head>
+<body>
+    <form class="layui-form">
+        <br />
+        <div class="layui-inline"></div>
+        <div class="layui-inline">
+            <div class="layui-input-inline">
+                <select name="Type" id="typeSelect" lay-verify="" lay-filter="typeSelect" lay-search></select>
+            </div>
+            <div class="layui-input-inline">
+                <input type="text" id="NewsTitle" lay-verify="" placeholder="请输入新闻标题" class="layui-input" />
+            </div>
+            <div class="layui-input-inline" id="Status">
+                <input type="radio" name="radioName" value="全部" lay-filter="radio" title="全部" checked="" class="">
+                <input type="radio" name="radioName" value="编辑" lay-filter="radio" title="编辑" class="">
+                <input type="radio" name="radioName" value="已发布" lay-filter="radio" title="已发布" class="">
+                <input type="radio" name="radioName" value="取消发布" lay-filter="radio" title="取消发布" class="">
+            </div>
+            <div class="layui-input-inline">
+                <a class="layui-btn layui-btn-sm layui-btn-primary" onclick="Refresh()">查询</a>
+            </div>
+            <div class="layui-input-inline">
+                <a class="layui-btn layui-btn-sm" onclick="btnAdd()">新增</a>
+            </div>
+            <div class="layui-input-inline">
+                <a id="btnEdit" class="layui-btn layui-btn-sm layui-btn-normal" onclick="btnEdit()">编辑</a>
+            </div>
+            <div class="layui-input-inline">
+                <a id="btnDelete" class="layui-btn layui-btn-sm layui-btn-danger" onclick="btnDel()">删除</a>
+            </div>
+            <div class="layui-input-inline">
+                <a id="btnRelease" class="layui-btn layui-btn-sm" onclick="btnRelease()">发布</a>
+            </div>
+            <div class="layui-input-inline">
+                <a id="btnCancel" class="layui-btn layui-btn-sm layui-btn-danger" onclick="btnCancel()">取消发布</a>
+            </div>
+        </div>
+        <table id="table1" lay-filter="table1"></table>
+    </form>
+    <script>
+        function GetNewsType(form) {
+            $.ajax({
+                type: 'get',
+                dataType: 'json',
+                url: '@Url.Action("GetNewsType", "News")',
+                success: function (res) {
+                    if (res.code == 0) {
+                        $('#typeSelect').append('<option value="0">全部</option>');
+                        $.each(res.data, function (index, item) {
+                            $('#typeSelect').append('<option value="' + item.NewsTypeId + '">' + item.NewsTypeName + '</option>');
+                        });
+                        $("#typeSelect").val(0);
+                        form.render('select');
+                    } else {
+                        layer.msg(res.msg, {
+                            icon: 5
+                        });
+                    }
+                },
+                error: function (res) {
+                    layer.msg("请求接口出错，请联系管理员", {
+                        icon: 5
+                    });
+                }
+            });
+        }
+
+        function NewsView(id) {
+            layer.open({
+                type: 2,
+                area: ["100%", "100%"],
+                title: "查看 - 新闻",
+                content: '@Url.Action("NewsView","News")' + '?status=view&Rowid=' + id
+            });
+        }
+        var table, ins, layer, form, upload, files;
+        layui.use(['table', 'form', 'upload'], function () {
+            table = layui.table, layer = layui.layer, form = layui.form, upload = layui.upload;
+            GetNewsType(form);
+            form.render();
+            ins = table.render({
+                elem: '#table1'
+                , cellMinWidth: 120
+                , height: document.documentElement.clientHeight - 60
+                , url: '@Url.Action("GetNewsList", "News")',
+                where: {
+                    NewsTitle: '',
+                    NewsTypeId: 0,
+                    Status: '全部'
+                }, method: 'get'
+                , page: true //开启分页
+                , limit: 20
+                , limits: [20, 50, 100]
+                , cols: [[ //表头
+                    { type: 'checkbox', fixed: 'left' }
+                    , { field: 'NewsId', title: '主键', hide: true }
+                    , { field: 'NewsTypeName', title: '类型', sort: true }
+                    , {
+                        field: 'NewsTitle', title: '标题', width: 180, sort: true, templet: function (d) {
+                            return '<a href="javascript:NewsView(\''+ d.NewsId + '\');" style="color:blue;">' + d.NewsTitle + '</a>';
+                        } }
+                    , { field: 'NewsAuthor', title: '作者', width: 180, sort: true }
+                    , {
+                        field: 'NewsCoverImageUrl', title: '封面图片', width: 180, sort: true, templet: function (d) {
+                            if (d.NewsCoverImageUrl == null || d.NewsCoverImageUrl == "" || d.NewsCoverImageUrl == undefined) {
+                                return '<p>暂无图片</p>';
+                            } else {
+                                return '<img src="' + d.NewsCoverImageUrl + '" style="width:150px;height:120px;">';
+                            }
+                        } }
+                    , { field: 'NewsReleaseTime', title: '发布时间', sort: true }
+                    , { field: 'BrowseNumber', title: '浏览次数', sort: true }
+                    , {
+                        field: 'Status', title: '状态', sort: true}
+                ]], loading: true,
+                done: function () {
+                    var val = $('#Status input[name="radioName"]:checked ').val();
+                    if (val == "全部") {
+                        $("#btnEdit").css({ "display": "" });
+                        $("#btnDelete").css({ "display": "" });
+                        $("#btnRelease").css({ "display": "" });
+                        $("#btnCancel").css({ "display": "" });
+                    } else if (val=="编辑") {
+                        $("#btnEdit").css({ "display": "" });
+                        $("#btnDelete").css({ "display": "" });
+                        $("#btnRelease").css({ "display": "" });
+                        $("#btnCancel").css({ "display": "none" });
+                    } else if (val == "已发布") {
+                        $("#btnEdit").css({ "display": "none" });
+                        $("#btnDelete").css({ "display": "none" });
+                        $("#btnRelease").css({ "display": "none" });
+                        $("#btnCancel").css({ "display": "" });
+                    } else if (val =="取消发布") {
+                        $("#btnEdit").css({ "display": "none" });
+                        $("#btnDelete").css({ "display": "none" });
+                        $("#btnRelease").css({ "display": "none" });
+                        $("#btnCancel").css({ "display": "none" });
+                    }
+                    hoverOpenImg();
+                    $('table tr').on('click', function () {
+                        $('table tr').css('background', '');
+                        $(this).css('background', '<%=PropKit.use("config.properties").get("table_color")%>');
+                    });
+                }
+            });
+            //监听单选框变更
+            form.on('radio(radio)', function (data) {
+                if (data.value == "全部") {
+                    $("#btnEdit").css({ "display": "" });
+                    $("#btnDelete").css({ "display": "" });
+                    $("#btnRelease").css({ "display": "" });
+                    $("#btnCancel").css({ "display": "" });
+                } else if (data.value == "编辑") {
+                    $("#btnEdit").css({ "display": "" });
+                    $("#btnDelete").css({ "display": "" });
+                    $("#btnRelease").css({ "display": "" });
+                    $("#btnCancel").css({ "display": "none" });
+                } else if (data.value == "已发布") {
+                    $("#btnEdit").css({ "display": "none" });
+                    $("#btnDelete").css({ "display": "none" });
+                    $("#btnRelease").css({ "display": "none" });
+                    $("#btnCancel").css({ "display": "" });
+                } else if (data.value == "取消发布") {
+                    $("#btnEdit").css({ "display": "none" });
+                    $("#btnDelete").css({ "display": "none" });
+                    $("#btnRelease").css({ "display": "none" });
+                    $("#btnCancel").css({ "display": "none" });
+                }
+                Refresh();
+            });
+        });
+
+        function hoverOpenImg() {
+            var img_show = null; // tips提示
+            $('td img').hover(function () {
+                var img = "<img class='img_msg' src='" + $(this).attr('src') + "' style='width:300px;' />";
+                img_show = layer.tips(img, this, {
+                    tips: [3, '#ffffff'],
+                    area:['330px']
+                });
+            }, function () {
+                layer.close(img_show);
+            });
+            $('td img').attr('style', 'max-width:150px;display:block!important');
+        }
+        function Refresh() {
+            table.reload("table1", {
+                url: '@Url.Action("GetNewsList", "News")',
+                where: {
+                    NewsTitle: $("#NewsTitle").val(),
+                    NewsTypeId: $('select[name="Type"] option:selected').val(),
+                    Status: $('#Status input[name="radioName"]:checked ').val()
+                }, method: "get",
+                page: {
+                    curr: 1
+                }
+            });
+        }
+        //新增
+        function btnAdd() {
+            layer.open({
+                type: 2,
+                area: ["100%", "100%"],
+                title: "新增 - 新闻",
+                content: '@Url.Action("NewsEdit","News")' + '?status=add&NewsId='
+            });
+        }
+        //编辑
+        function btnEdit() {
+            var checkStatus = table.checkStatus('table1');
+            if (checkStatus.data.length > 0) {
+                if (checkStatus.data.length > 1) {
+                    layer.msg("编辑只能勾选一行数据", { icon: 5 }); return;
+                }
+                if (checkStatus.data[0].Status == "编辑") {
+                    layer.open({
+                        type: 2,
+                        area: ["100%", "100%"],
+                        title: "编辑 - 新闻",
+                        content: '@Url.Action("NewsEdit","News")' + '?status=update&NewsId=' + checkStatus.data[0].NewsId
+                    });
+                } else {
+                    layer.msg("已发布的新闻无法编辑", { icon: 5 });
+                }
+            } else {
+                layer.msg('请先勾选数据', {
+                    icon: 5
+                });
+            }
+        }
+        //删除
+        function btnDel() {
+            var checkStatus = table.checkStatus('table1');
+            if (checkStatus.data.length > 0) {
+                var obj = [];
+                layer.confirm('是否删除？', { btn: ['是', '否'], icon: 3, title: '提示' }, function (index) {
+                    for (var i = 0; i < checkStatus.data.length; i++) {
+                        if (checkStatus.data[i].Status == "编辑") {
+                            obj.push(checkStatus.data[i].NewsId);
+                        }
+                    }
+                    $.ajax({
+                        type: 'post',
+                        dataType: 'json',
+                        traditional: true,
+                        url: '@Url.Action("Delete", "News")',
+                        data: {
+                            id: obj
+                        },
+                        success: function (res) {
+                            if (res.code == 200) {
+                                layer.msg(res.msg, { icon: 6 });
+                                Refresh();
+                            } else {
+                                layer.msg(res.msg, { icon: 5 });
+                            }
+                        },
+                        error: function () {
+                            layer.msg("接口出错，请联系管理员", { icon: 5 });
+                        }
+                    });
+                });
+            } else {
+                layer.msg('请先勾选数据', {
+                    icon: 5
+                });
+            }
+        }
+        //发布
+        function btnRelease() {
+            var checkStatus = table.checkStatus('table1');
+            if (checkStatus.data.length > 0) {
+                var obj =[];
+                layer.confirm('是否发布？', { btn: ['是', '否'], icon: 3, title: '提示' }, function (index) {
+                    for (var i = 0; i < checkStatus.data.length; i++) {
+                        if (checkStatus.data[i].Status == "编辑") {
+                            obj.push(checkStatus.data[i].NewsId);
+                        }
+                    }
+                    $.ajax({
+                        type: 'post',
+                        dataType: 'json',
+                        traditional: true,
+                        url: '@Url.Action("ReleaseNews", "News")',
+                        data: {
+                            id: obj
+                        },
+                        success: function (res) {
+                            if (res.code == 200) {
+                                layer.msg(res.msg, { icon: 6 });
+                                Refresh();
+                            } else {
+                                layer.msg(res.msg, { icon: 5 });
+                            }
+                        },
+                        error: function () {
+                            layer.msg("接口出错，请联系管理员", { icon: 5 });
+                        }
+                    });
+                });
+            } else {
+                layer.msg('请先勾选数据', {
+                    icon: 5
+                });
+            }
+        }
+        //取消发布
+        function btnCancel() {
+            var checkStatus = table.checkStatus('table1');
+            if (checkStatus.data.length > 0) {
+                var obj =[];
+                layer.confirm('是否取消发布？', { btn: ['是', '否'], icon: 3, title: '提示' }, function (index) {
+                    for (var i = 0; i < checkStatus.data.length; i++) {
+                        if (checkStatus.data[i].Status == "已发布") {
+                            obj.push(checkStatus.data[i].NewsId);
+                        }
+                    }
+                    $.ajax({
+                        type: 'post',
+                        dataType: 'json',
+                        traditional: true,
+                        url: '@Url.Action("CancelNews", "News")',
+                        data: {
+                            id: obj
+                        },
+                        success: function (res) {
+                            if (res.code == 200) {
+                                layer.msg(res.msg, { icon: 6 });
+                                Refresh();
+                            } else {
+                                layer.msg(res.msg, { icon: 5 });
+                            }
+                        },
+                        error: function () {
+                            layer.msg("接口出错，请联系管理员", { icon: 5 });
+                        }
+                    });
+                });
+            } else {
+                layer.msg('请先勾选数据', {
+                    icon: 5
+                });
+            }
+        }
+    </script>
+</body>
+</html>

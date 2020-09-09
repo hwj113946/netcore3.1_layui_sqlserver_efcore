@@ -1,0 +1,73 @@
+﻿
+@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+
+<html>
+<head>
+    <meta name="viewport" content="width=device-width" />
+    <script src="~/layui/layui.js"></script>
+    <link href="~/layui/css/layui.css" rel="stylesheet" />
+    <script src="~/js/jquery-3.2.1.min.js"></script>
+    <script src="~/js/passwordCheck.js"></script>
+    <title>首页</title>
+    <script>
+        var form, layer;
+        layui.use('form', function () {
+            form = layui.form, layer = layui.layer;
+            NeedChange(layer,'@ViewBag.need','@Url.Action("ChangePassWord", "User")');
+        });
+    </script>
+</head>
+<body>
+    <div style="padding: 20px; background-color: #F2F2F2;">
+        <div class="layui-row layui-col-space15">
+            @*<div class="layui-col-md3">
+                <div class="layui-card">
+                    <div class="layui-card-header" style="color:teal">人员数量</div>
+                    <div class="layui-card-body" style="background-color:teal;color:white;">
+                        <table>
+                            <tr><td style="text-align-last:justify">待核定人员：</td><td>@ViewBag.Effective</td></tr>
+                            <tr><td style="text-align-last:justify">本人已核定：</td><td>@ViewBag.Invalid</td></tr>
+                            <tr><td style="text-align-last:justify">复核通过数：</td><td>@ViewBag.Done</td></tr>
+                            <tr><td style="text-align-last:justify">总人员数量：</td><td>@ViewBag.All</td></tr>
+                        </table>
+                    </div>
+                </div>
+            </div>*@
+            @*<div class="layui-col-md3">
+                    <div class="layui-card">
+                        <div class="layui-card-header" style="color:darkorange">卡片面板</div>
+                        <div class="layui-card-body" style="background-color:darkorange;color:white;">
+                            结合 layui 的栅格系统<br />
+                            轻松实现响应式布局<br />
+                            Test
+                        </div>
+                    </div>
+                </div>
+                <div class="layui-col-md3">
+                    <div class="layui-card">
+                        <div class="layui-card-header" style="color:deepskyblue">待办审批</div>
+                        <div class="layui-card-body" style="background-color:deepskyblue;color:white;">
+                            未办数量：@ViewBag.NotFinish<br />
+                            轻松实现响应式布局<br />
+                            总数量:13
+                        </div>
+                    </div>
+                </div>
+                <div class="layui-col-md3">
+                    <div class="layui-card">
+                        <div class="layui-card-header" style="color:mediumpurple">显示啥呢</div>
+                        <div class="layui-card-body" style="background-color:mediumpurple;color:white;">
+                            未办数量：@ViewBag.NotFinish<br />
+                            轻松实现响应式布局<br />
+                            总数量:13
+                        </div>
+                    </div>
+                </div>*@
+        </div>
+    </div>   
+</body>
+</html>

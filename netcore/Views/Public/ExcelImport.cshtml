@@ -1,0 +1,61 @@
+﻿@{
+    Layout = null;
+}
+<script src="~/js/jquery-3.2.1.min.js"></script>
+<script src="~/layui/layui.js"></script>
+<link href="~/layui/css/layui.css" rel="stylesheet" />
+
+<form class="layui-form">
+    <br />
+    <div class="layui-form-item">
+        <label class="layui-form-label">导入模板</label>
+        <div class="layui-input-inline">
+            <a id="temp" style="text-decoration:underline;color:deepskyblue;" target="_blank">点击我进行下载</a>
+        </div>
+        <label></label>
+        <div class="layui-input-inline">
+            <a class="layui-btn layui-btn-sm" id="Import">选择Excel文件并执行</a>
+        </div>
+    </div>
+    <div class="layui-form-item layui-form-text">
+        <label class="layui-form-label">导入结果</label>
+        <div class="layui-input-block">
+            <textarea lay-verify="required" id="ImportText" placeholder="导入结果" class="layui-textarea"></textarea>
+        </div>
+    </div>
+</form>
+<script>
+    var layer, form, upload, files;
+    layui.use(['table', 'form', 'upload'], function () {
+        layer = layui.layer, form = layui.form, upload = layui.upload;
+        form.render();
+        $("#temp").attr("href",'../../ExcelTemp/'+'@ViewBag.ExcelTempUrl');
+        //文件上传
+        upload.render({
+            elem: '#Import'
+            , url: '@ViewBag.UploadUrl'
+            , accept: 'file' //普通文件
+            , exts: 'xls|xlsx' //允许上传的文件后缀
+            , multiple: false//单文件上传
+            , choose: function (obj) {
+                files = obj.pushFile();
+            }
+            , before: function () {
+                layer.load();
+            }
+            , done: function (res, index) {//返回值接收
+                layer.closeAll('loading');
+                if (res.code == 200) {
+                    layer.msg(res.msg, { icon: 6 });
+                    $("#ImportText").val(res.returnMsg);
+                } else {
+                    layer.msg(res.msg, { icon: 5 });
+                }
+                delete files[index];
+            }, error: function () {
+                layer.closeAll('loading');
+                layer.msg('导入失败，请联系管理员', { icon: 5 });
+            }
+        });
+    });
+</script>

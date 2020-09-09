@@ -1,0 +1,167 @@
+﻿
+@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+
+<html>
+<head>
+    <meta name="viewport" content="width=device-width" />
+    <title>EditButton</title>
+    <link href="~/layui/css/layui.css" rel="stylesheet" />
+    <script src="~/layui/layui.js"></script>
+    <script src="~/js/jquery-3.2.1.min.js"></script>
+</head>
+<body>
+    <br />
+    <form class="layui-form" style="text-align:center;">
+        <div class="layui-form-item">
+            <div class="layui-inline">
+                <label class="layui-form-label"><span style="color:red;">*</span>按钮名称</label>
+                <div class="layui-input-inline">
+                    <input id="button_name" class="layui-input" placeholder="按钮名称" lay-verify="required" lay-reqtext="按钮名称不能为空" />
+                </div>
+            </div>
+            <div class="layui-inline">
+                <label class="layui-form-label"><span style="color:red;">*</span>按钮图标</label>
+                <div class="layui-input-inline">
+                    <input id="button_icon" class="layui-input" placeholder="请输入layui-icon编码" lay-verify="required" lay-reqtext="按钮图标不能为空" />
+                </div>
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <div class="layui-inline">
+                <label class="layui-form-label"><span style="color:red;">*</span>按钮事件</label>
+                <div class="layui-input-inline">
+                    <input id="button_event" class="layui-input" placeholder="按钮事件" lay-verify="required" lay-reqtext="按钮事件不能为空" oninput="btnIdChange()" />
+                </div>
+            </div>
+            <div class="layui-inline">
+                <label class="layui-form-label">按钮颜色</label>
+                <div class="layui-input-inline">
+                    <input id="button_color" class="layui-input" placeholder="聚焦弹出选择界面" onfocus="chooseColor()" />
+                </div>
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <div class="layui-inline">
+                <label class="layui-form-label"><span style="color:red;">*</span>按钮排序</label>
+                <div class="layui-input-inline">
+                    <input type="number" min="0" step="0.1" id="button_sort" class="layui-input" placeholder="按钮排序" lay-verify="required" lay-reqtext="按钮排序不能为空" />
+                </div>
+            </div>
+            <div class="layui-inline">
+                <label class="layui-form-label">按钮ID</label>
+                <div class="layui-input-inline">
+                    <input id="button_element_id" class="layui-input" placeholder="按钮htmlID" lay-verify="required" lay-reqtext="按钮ID不能为空" />
+                </div>
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <div align="center">
+                <button class="layui-btn" lay-submit="" lay-filter="btnCommit">保存</button>
+                &nbsp;
+                <button class="layui-btn layui-btn-danger" onclick="btnClose()">关闭</button>
+            </div>
+        </div>
+    </form>
+    <script>
+        var layer, form;
+        layui.use(["layer", "form"], function () {
+            layer = layui.layer, form = layui.form;
+            form.render();
+            form.on("submit(btnCommit)", function (data) {
+                var button_name = $("#button_name").val();
+                var button_icon = $("#button_icon").val();
+                var button_event = $("#button_event").val();
+                var button_sort = $("#button_sort").val();
+                var attribute1 = $("#button_color").val();
+                var attribute2 = $("#button_element_id").val();
+                var status = '@ViewBag.status';
+                var url = (status == "Add" ? '@Url.Action("Insert","Button")' : '@Url.Action("Modify","Button")');
+                var datas = (status == "Add" ?
+                    {
+                        button_name: button_name, button_icon: button_icon, button_event: button_event, button_sort: button_sort, button_color: attribute1, button_element_id: attribute2
+                    }
+                    :
+                    {
+                        Rowid: '@ViewBag.Rowid', button_name: button_name, button_icon: button_icon, button_event: button_event, button_sort: button_sort, button_color: attribute1, button_element_id: attribute2
+                    });
+                $.ajax({
+                    type: 'post',
+                    dataType: 'json',
+                    url: url,
+                    data: datas,
+                    success: function (res) {
+                        if (res.code == 200) {
+                            var index = parent.layer.getFrameIndex(window.name);
+                            parent.layer.close(index);
+                            parent.layer.msg(res.msg, {
+                                icon: 6
+                            });
+                            parent.Refresh();
+                            return false;
+                        } else {
+                            layer.msg(res.msg, { icon: 5 });
+                            return false;
+                        }
+                    },
+                    error: function (res) {
+                        parent.layer.msg("接口出错，请联系管理员", {
+                            icon: 5
+                        });
+                        return false;
+                    }
+                });
+                return false;
+            });
+        });
+
+        function btnClose() {
+            var index = parent.layer.getFrameIndex(window.name);
+            parent.layer.close(index);
+        }
+
+        function chooseColor() {
+            layer.open({
+                type: 2,
+                area: ["600px", "350px"],
+                title: "选择颜色 - 按钮",
+                content: '@Url.Action("ChooseColor","Button")'
+            });
+        }
+
+        $(document).ready(function () {
+            if ('@ViewBag.status' == "Add") {
+                return;
+            }
+            $.ajax({
+                type: 'get',
+                dataType: 'json',
+                url: '@Url.Action("GetButtonById","Button")',
+                data: { id: '@ViewBag.Rowid' },
+                success: function (res) {
+                    if (res.code == 0) {
+                        $("#button_name").val(res.data.ButtonName);
+                        $("#button_icon").val(res.data.ButtonIcon);
+                        $("#button_event").val(res.data.ButtonEvent);
+                        $("#button_sort").val(res.data.ButtonSort);
+                        $("#button_color").val(res.data.ButtonColor);
+                        $("#button_element_id").val(res.data.ButtonElementId);
+                    } else {
+                        layer.msg(res.msg, { icon: 5 });
+                    }
+                }, error: function (res) {
+                    layer.msg("接口出错，请联系管理员", { icon: 5 });
+                }
+
+            });
+        });
+        function btnIdChange() {
+            var val = $("#button_event").val();
+            $("#button_element_id").val(val==null?"":val.replace('(', '').replace(')', '').replace('（', '').replace('）',''));
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,144 @@
+﻿
+@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+
+<html>
+<head>
+    <meta name="viewport" content="width=device-width" />
+    <title>查看</title>
+    <script src="~/js/jquery-3.2.1.min.js"></script>
+    <script src="~/layui/layui.js"></script>
+    <link href="~/layui/css/layui.css" rel="stylesheet" />
+    @*<link href="~/tinymce/skins/content/default/content.css" rel="stylesheet" />
+    <link href="~/tinymce/skins/ui/oxide/content.min.css" rel="stylesheet" />*@
+    <link href="~/tinymce/skins/ui/oxide/content.min.css" rel="stylesheet"/>
+    <link href="~/tinymce/skins/content/default/content.css"rel="stylesheet"/>
+    @*<style>
+        .tox .tox-dialog {
+            border: none;
+        }
+
+        .tox .tox-dialog,
+        .tox .tox-button,
+        .tox .tox-textarea,
+        .tox .tox-textfield,
+        .tox .tox-selectfield select,
+        .tox .tox-toolbar-textfield {
+            border-radius: 0;
+        }
+
+        .tox .tox-dialog-wrap__backdrop {
+            background-color: rgba(0, 0, 0, .3);
+        }
+    </style>*@
+</head>
+<body>
+    <div>
+        <h2 align="center" id="NewsTitle"></h2>
+        <div class="layui-row" align="center" style="color:gray;">
+            <small id="NewsAuthor">作者：</small>
+            <small>|</small>
+            <small id="NewsReleaseTime">发布时间：</small>
+            <small>|</small>
+            <small id="NewsTypeName">新闻类型：</small>
+            <small>|</small>
+            <small id="BrowseNumber">浏览次数：</small>
+        </div>
+        <hr />
+        <div class="mce-content-body" id="tinymce">
+
+        </div>
+        @*<textarea name="" id="edit"></textarea>*@
+    </div>
+    <script>
+        var layer,form;
+        layui.extend({
+            tinymce: '../tinymce'
+        }).use(['tinymce', 'util', 'layer', 'form'], function () {
+            layer = layui.layer, form = layui.form;
+            var t = layui.tinymce;
+            var util = layui.util;
+
+            @*var edit = t.render({
+                elem: "#edit"
+                , height: document.documentElement.clientHeight-80
+                , toolbar: false
+                , menubar: false
+            }, function (opt) {
+                    var url = '@ViewBag.status' == 'view' ? '@Url.Action("GetNewsByIdNotAdd", "News")' : '@Url.Action("GetNewsById", "News")';
+                $.ajax({
+                    type: 'get',
+                    dataType: 'json',
+                    url: url,
+                    data: { news_id: '@ViewBag.news_id' },
+                    async: true,
+                    success: function (res) {
+                        if (res.code == 0) {
+                            //console.log(res);
+                            $("#NewsTitle").append(res.data.NewsTitle);
+                            $("#NewsAuthor").append(res.data.NewsAuthor);
+                            $("#NewsReleaseTime").append(res.data.NewsReleaseTime);
+                            $("#NewsTypeName").append(res.data.NewsTypeName);
+                            $("#BrowseNumber").append(res.data.BrowseNumber);
+                            //不用setTimeout会有时候渲染不到内容
+                            setTimeout(function () {
+                                if (res.data.NewsContent.indexOf("&quot;") > -1) {
+                                    var reg = new RegExp("&quot;", "g");//g,表示全部替换。
+                                    t.get("#edit").setContent(res.data.NewsContent.replace(reg, "\""));
+                                } else {
+                                    t.get("#edit").setContent(res.data.NewsContent);
+                                }
+                                tinymce.editors['edit'].setMode('readonly');//开启只读模式
+                            },300);
+
+                        } else {
+                            layer.msg(res.msg, { icon: 5 });
+                        }
+                    }, error: function (res) {
+                        layer.msg("接口出错，请联系管理员", { icon: 5 });
+                    }
+                });
+            });*@
+        });
+        $(document).ready(function () {
+            var url = '@ViewBag.status' == 'view' ? '@Url.Action("GetNewsByIdNotAdd", "News")' : '@Url.Action("GetNewsById", "News")';
+            $.ajax({
+                type: 'get',
+                dataType: 'json',
+                url: url,
+                data: { news_id: '@ViewBag.news_id' },
+                async: true,
+                success: function (res) {
+                    if (res.code == 0) {
+                        //console.log(res);
+                        $("#NewsTitle").append(res.data.NewsTitle);
+                        $("#NewsAuthor").append(res.data.NewsAuthor);
+                        $("#NewsReleaseTime").append(res.data.NewsReleaseTime);
+                        $("#NewsTypeName").append(res.data.NewsTypeName);
+                        $("#BrowseNumber").append(res.data.BrowseNumber);
+                        //不用setTimeout会有时候渲染不到内容
+                        setTimeout(function () {
+                            var reg = new RegExp("&quot;", "g");//g,表示全部替换。
+                            $("#tinymce").append(res.data.NewsContent.replace(reg, "\""));
+                            //if (res.data.NewsContent.indexOf("&quot;") > -1) {
+                            //    t.get("#edit").setContent(res.data.NewsContent.replace(reg, "\""));
+                            //} else {
+                            //    t.get("#edit").setContent(res.data.NewsContent);
+                            //}
+                            //tinymce.editors['edit'].setMode('readonly');//开启只读模式
+                        }, 300);
+
+                    } else {
+                        layer.msg(res.msg, { icon: 5 });
+                    }
+                }, error: function (res) {
+                    layer.msg("接口出错，请联系管理员", { icon: 5 });
+                }
+            });
+        });
+    </script>
+</body>
+</html>

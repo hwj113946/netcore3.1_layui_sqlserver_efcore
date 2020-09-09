@@ -1,0 +1,108 @@
+﻿
+@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+
+<html>
+<head>
+    <meta name="viewport" content="width=device-width" />
+    <title>RoleEdit</title>
+    <script src="~/layui/layui.js"></script>
+    <link href="~/layui/css/layui.css" rel="stylesheet" />
+    <script src="~/js/jquery-3.2.1.min.js"></script>
+</head>
+<body>
+    <form class="layui-form" style="text-align:center;">
+        <br />
+        <div class="layui-form-item">
+            <div class="layui-inline">
+                <label class="layui-form-label">角色名称</label>
+                <div class="layui-input-inline">
+                    <input class="layui-input" id="role_name" lay-verify="required" lay-reqtext="角色名称不能为空" placeholder="角色名称" />
+                </div>
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <div align="center">
+                <button class="layui-btn" lay-submit="" lay-filter="btnCommit">保存</button>
+                &nbsp;
+                <button class="layui-btn layui-btn-danger" onclick="btnClose()">关闭</button>
+            </div>
+        </div>
+    </form>
+    <script>
+        var layer, form;
+        layui.use(["layer", "form"], function () {
+            layer = layui.layer, form = layui.form;
+            form.render();
+
+            form.on("submit(btnCommit)", function (data) {
+                var role_name = $("#role_name").val();
+                var status = '@ViewBag.status';
+                var url = status == "Add" ? '@Url.Action("Insert","Role")' : '@Url.Action("Modify","Role")';
+                var datas = status == "Add" ? { role_name: role_name } : { role_name: role_name, role_id: '@ViewBag.role_id' };
+                $.ajax({
+                    type: 'post',
+                    dataType: 'json',
+                    url: url,
+                    data: datas,
+                    success: function (res) {
+                        if (res.code == 200) {
+                            var index = parent.layer.getFrameIndex(window.name);
+                            parent.layer.close(index);
+                            parent.layer.msg(res.msg, {
+                                icon: 6
+                            });
+                            parent.Refresh();
+                            return false;
+                        } else {
+                            layer.msg(res.msg, {
+                                icon: 5
+                            });
+                            return false;
+                        }
+                    },
+                    error: function (res) {
+                        parent.layer.msg("接口出错，请联系管理员", {
+                            icon: 5
+                        });
+                        return false;
+                    }
+                });
+                return false;
+            });
+        });
+
+        function btnClose() {
+            var index = parent.layer.getFrameIndex(window.name);
+            parent.layer.close(index);
+        }
+
+        $(document).ready(function () {
+            if ('@ViewBag.status' =="Add") {
+                return;
+            }
+            $.ajax({
+                type: 'get',
+                dataType: 'json',
+                url: '@Url.Action("GetRoleById","Role")',
+                data: { role_id: '@ViewBag.role_id' },
+                success: function (res) {
+                    if (res.code == 0) {
+                        $("#role_name").val(res.data.RoleName);
+                    } else {
+                        layer.msg(res.msg, {
+                            icon: 5
+                        });
+                    }
+                }, error: function (res) {
+                    layer.msg("接口出错，请联系管理员", {icon:5});
+                }
+
+            });
+        });
+    </script>
+</body>
+</html>

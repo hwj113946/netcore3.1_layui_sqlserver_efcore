@@ -1,0 +1,169 @@
+﻿
+@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+
+<html>
+<head>
+    <meta name="viewport" content="width=device-width" />
+    <title>{TableName}</title>
+    <script src="~/js/jquery-3.2.1.min.js"></script>
+    <script src="~/js/button.js"></script>
+    <link href="~/layui/css/layui.css" rel="stylesheet" />
+    <script src="~/layui/layui.js"></script>
+    <script src="~/js/do_function.js"></script>
+</head>
+<body>
+    <form class="layui-form">
+        <br />
+        <div id="button">
+            <div class="layui-inline"></div>
+            <div class="layui-inline">
+                <div class="layui-input-inline">
+                    <input type="text" id="search_text" lay-verify="" placeholder="请输入内容" class="layui-input" />
+                </div>
+            </div>
+        </div>
+        <table id="table1" lay-filter="table1"></table>
+    </form>
+    <form class="layui-form" id="test" style="display: none">
+        <br />
+        <div class="layui-form-item layui-form-text">
+            <label class="layui-form-label">导入结果</label>
+            <div class="layui-input-block">
+                <textarea lay-verify="required" id="Import" placeholder="导入结果" class="layui-textarea"></textarea>
+            </div>
+        </div>
+    </form>
+<script>
+        var table,layer,form,laydate,upload, files;
+        layui.use(['table', 'form', 'laydate', 'upload'], function () {
+            table = layui.table, layer = layui.layer, form = layui.form, laydate = layui.laydate, upload = layui.upload;
+            form.render();
+            table.render({
+                elem: '#table1',
+                cellMinWidth: 120,
+                height: document.documentElement.clientHeight - 60,
+                url: '@Url.Action("GetList", "{ControllerName}")',
+                where: { search_text: '' },
+                method: 'Get',
+                page: true,
+                limit: 20,
+                limits: [20, 30, 50],
+                cols: [[
+                    { type: 'checkbox', fixed: 'left' },
+{ColName}
+                ]], loading: true
+            });
+            upload.render({
+                elem: '#btnImport'
+                , url: '@Url.Action("FileUpload", "{ControllerName}")'
+                , accept: 'file'
+                , exts: 'xls|xlsx'
+                , multiple: false
+                , choose: function (obj) {
+                    files = obj.pushFile();
+                }
+                , before: function () {
+                    layer.load();
+                }
+                , done: function (res, index) {
+                    layer.closeAll('loading');
+                    if (res.code == 0) {
+                        layer.msg(res.msg, { icon: 6 });
+                        layer.open({
+                            type: 1,
+                            area: ['650px', '450px'],
+                            title: '导入结果'
+                            , content: $("#test"),
+                            shade: 0,
+                            cancel: function (layero, index) {
+                                $("#Import").val("");
+                                layer.closeAll();
+                            }
+                        });
+                        $("#Import").val(res.returnMsg);
+                    } else {
+                        layer.msg(res.msg, { icon: 5 });
+                    }
+                    delete files[index];
+                    Refresh();
+                }, error: function () {
+                    layer.closeAll('loading');
+                    layer.msg('导入失败，请联系管理员', { icon: 5 });
+                }
+            });
+        });
+        function Refresh() {
+            table.reload("table1", {
+                url: '@Url.Action("GetList", "{ControllerName}")',
+                where: {
+                    search_text: $("#search_text").val()
+                },
+                method: "Get",
+                page: { curr: 1 }
+            });
+        }
+        function btnAdd() {
+            var url = '@Url.Action("{EditViewName}","{ControllerName}")' + '?Rowid=&status=add';
+            layer.open({ type: 2, area: ['800px', '500px'], title: '新增', content: url });
+        }
+        function btnEdit() {
+            var checkStatus = table.checkStatus('table1');
+            if (checkStatus.data.length > 0) {
+                if (checkStatus.data.length > 1) {
+                    layer.msg("编辑只能勾选一行数据", { icon: 5 }); return;
+                }
+                var url = '@Url.Action("{EditViewName}","{ControllerName}")' + '?Rowid=' + checkStatus.data[0].{PK} + '&status=update';
+                layer.open({ type: 2, area: ['800px', '500px'], title: '编辑', content: url });
+            }
+            else {
+                layer.msg('请先勾选数据', { icon: 5 });
+            }
+        }
+        function btnDel() {
+            var checkStatus = table.checkStatus('table1');
+            if (checkStatus.data.length > 0) {
+                var obj = [];
+                layer.confirm('是否删除？', { btn: ['是', '否'], icon: 3, title: '提示' }, function (index) {
+                    for (var i = 0; i < checkStatus.data.length; i++) {
+                        obj.push(checkStatus.data[i].{PK});
+                    }
+                    $.ajax({
+                        type: 'post',
+                        dataType: 'json',
+                        traditional: true,
+                        url: '@Url.Action("Delete", "{ControllerName}")',
+                        data: { corp_id: obj },
+                        success: function (res) {
+                            if (res.code == 200) {
+                                layer.msg(res.msg, { icon: 6 }); Refresh();
+                            }
+                            else {
+                                layer.msg(res.msg, { icon: 5 });
+                            }
+                        }
+                        , error: function () {
+                            layer.msg("接口出错，请联系管理员", { icon: 5 });
+                        }
+                    });
+                });
+            } else { layer.msg('请先勾选数据', { icon: 5 }); }
+        }
+        function btnExport() {
+            var _form = document.createElement("form");
+            document.body.appendChild(_form);
+            _form.action = '@Url.Action("Export", "{ControllerName}")';
+            _form.data = '';
+            _form.method = 'post';
+            var _input = document.createElement("input");
+            _input.setAttribute("name", "search_text");
+            _input.setAttribute("type", "hidden");
+            _input.setAttribute("value", $("#search_text").val());
+            _form.appendChild(_input); _form.submit();
+        }
+    </script>
+</body>
+</html>

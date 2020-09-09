@@ -1,0 +1,224 @@
+﻿
+@{
+    Layout = null;
+}
+<script src="~/js/jquery-3.2.1.min.js"></script>
+<link href="~/layui/css/layui.css" rel="stylesheet" />
+<script src="~/layui/layui.js"></script>
+
+<form style="text-align:center;" class="layui-form">
+    <br />
+    <div class="layui-form-item">
+        <div class="layui-inline">
+            <label class="layui-form-label"><span style="color:red;">*</span>公司代码</label>
+            <div class="layui-input-inline">
+                <input type="text" class="layui-input" lay-verify="required" id="CorpCode" placeholder="请输入公司代码">
+            </div>
+            <label class="layui-form-label"><span style="color:red;">*</span>公司名称</label>
+            <div class="layui-input-inline">
+                <input type="text" class="layui-input" id="CorpName" lay-verify="required" placeholder="请输入公司名称">
+            </div>
+        </div>
+    </div>
+    <div class="layui-form-item">
+        <div class="layui-inline">
+            <label class="layui-form-label">传真</label>
+            <div class="layui-input-inline">
+                <input type="text" class="layui-input" lay-verify="" id="Fax" placeholder="请输入传真号">
+            </div>
+            <label class="layui-form-label">邮政编码</label>
+            <div class="layui-input-inline">
+                <input type="text" class="layui-input" id="Zip" lay-verify="" placeholder="请输入邮政编码">
+            </div>
+        </div>
+    </div>
+    <div class="layui-form-item">
+        <div class="layui-inline">
+            <label class="layui-form-label">Eamil</label>
+            <div class="layui-input-inline">
+                <input type="text" class="layui-input" lay-verify="" id="Eamil" placeholder="请输入公司电子邮箱">
+            </div>
+            <label class="layui-form-label">纳税登记号</label>
+            <div class="layui-input-inline">
+                <input type="text" class="layui-input" id="TaxRqNumber" lay-verify="" placeholder="请输入纳税登记号">
+            </div>
+        </div>
+    </div>
+    <div class="layui-form-item">
+        <div class="layui-inline">
+            <label class="layui-form-label">联系人姓名</label>
+            <div class="layui-input-inline">
+                <input type="text" class="layui-input" lay-verify="" id="ContractPersonName" placeholder="请输入联系人姓名">
+            </div>
+            <label class="layui-form-label">联系人手机号</label>
+            <div class="layui-input-inline">
+                <input type="text" class="layui-input" id="ContractPersonPhone" lay-verify="" placeholder="请输入联系人手机号">
+            </div>
+        </div>
+    </div>
+    <div class="layui-form-item">
+        <div class="layui-inline">
+            <label class="layui-form-label">联系人身份证</label>
+            <div class="layui-input-inline">
+                <input type="text" class="layui-input" lay-verify="" id="ContractPersonIdentity" placeholder="请输入联系人身份证">
+            </div>
+            <label class="layui-form-label">法人姓名</label>
+            <div class="layui-input-inline">
+                <input type="text" class="layui-input" id="LawPersonName" lay-verify="" placeholder="请输入法人姓名">
+            </div>
+        </div>
+    </div>
+    <div class="layui-form-item">
+        <div class="layui-inline">
+            <label class="layui-form-label">法人手机号</label>
+            <div class="layui-input-inline">
+                <input type="text" class="layui-input" lay-verify="" id="LawPersonPhone" placeholder="请输入法人手机号">
+            </div>
+            <label class="layui-form-label">法人身份证</label>
+            <div class="layui-input-inline">
+                <input type="text" class="layui-input" id="LawPersonIdentity" lay-verify="" placeholder="请输入法人身份证">
+            </div>
+        </div>
+    </div>
+    <div class="layui-form-item  layui-form-text">
+        <label class="layui-form-label">公司地址</label>
+        <div class="layui-input-block">
+            <input type="text" class="layui-input" lay-verify="" id="Address" placeholder="请输入公司地址">
+        </div>
+    </div>
+    <div class="layui-form-item  layui-form-text">
+        <label class="layui-form-label">备注</label>
+        <div class="layui-input-block">
+            <textarea  class="layui-textarea" lay-verify="" id="Note" placeholder="请输入备注"></textarea>
+        </div>
+    </div>
+    <div class="layui-form-item">
+        <div align="center">
+            <button class="layui-btn" lay-submit="" lay-filter="btnCommit">保存</button>
+            &nbsp;
+            <button class="layui-btn layui-btn-danger" onclick="btnClose()">关闭</button>
+        </div>
+    </div>
+</form>
+<script>
+    var layer, form;
+        layui.use(["layer", "form"], function () {
+            layer = layui.layer, form = layui.form;
+            form.render();
+            form.on("submit(btnCommit)", function (data) {
+                var CorpCode = $("#CorpCode").val();
+                var CorpName = $("#CorpName").val();
+                var Fax = $("#Fax").val();
+                var Zip = $("#Zip").val();
+                var Email = $("#Email").val();
+                var TaxRqNumber = $("#TaxRqNumber").val();
+                var ContractPersonName = $("#ContractPersonName").val();
+                var ContractPersonPhone = $("#ContractPersonPhone").val();
+                var ContractPersonIdentity = $("#ContractPersonIdentity").val();
+                var LawPersonName = $("#LawPersonName").val();
+                var LawPersonPhone = $("#LawPersonPhone").val();
+                var LawPersonIdentity = $("#LawPersonIdentity").val();
+                var Address = $("#Address").val();
+                var Note = $("#Note").val();
+                var status = '@ViewBag.status';
+                var url = status == "add" ? '@Url.Action("Insert","Corp")' : '@Url.Action("Modify","Corp")';
+                var data = status == "add" ?
+                    {
+                        CorpCode: CorpCode,
+                        CorpName: CorpName,
+                        Fax: Fax,
+                        Zip: Zip,
+                        Email: Email,
+                        TaxRqNumber: TaxRqNumber,
+                        ContractPersonName: ContractPersonName,
+                        ContractPersonPhone: ContractPersonPhone,
+                        ContractPersonIdentity: ContractPersonIdentity,
+                        LawPersonName: LawPersonName,
+                        LawPersonPhone: LawPersonPhone,
+                        LawPersonIdentity: LawPersonIdentity,
+                        Address: Address,
+                        Note: Note
+                    }
+                    :
+                    {
+                        CorpCode: CorpCode,
+                        CorpName: CorpName,
+                        Fax: Fax,
+                        Zip: Zip,
+                        Email: Email,
+                        TaxRqNumber: TaxRqNumber,
+                        ContractPersonName: ContractPersonName,
+                        ContractPersonPhone: ContractPersonPhone,
+                        ContractPersonIdentity: ContractPersonIdentity,
+                        LawPersonName: LawPersonName,
+                        LawPersonPhone: LawPersonPhone,
+                        LawPersonIdentity: LawPersonIdentity,
+                        Address: Address,
+                        Note: Note,
+                        CorpId: '@ViewBag.corp_id'
+                    };
+                $.ajax({
+                    type: 'post',
+                    dataType: 'json',
+                    url: url,
+                    data: data,
+                    success: function (res) {
+                        if (res.code == 200) {
+                            parent.layer.close(parent.layer.getFrameIndex(window.name));
+                            parent.layer.msg(res.msg, {
+                                icon: 6
+                            });
+                            parent.Refresh();
+                            return false;
+                        } else {
+                            layer.msg(res.msg, { icon: 5 });
+                            return false;
+                        }
+                    },
+                    error: function () {
+                        layer.msg("接口出错，请联系管理员", { icon: 5 });
+                        return false;
+                    }
+                });
+                return false;
+            });
+        });
+        function btnClose() {
+            var index = parent.layer.getFrameIndex(window.name);
+            parent.layer.close(index);
+        }
+
+    $(document).ready(function () {
+        if ('@ViewBag.status' == 'add') {
+            return;
+        }
+        $.ajax({
+            type: 'get',
+            dataType: 'json',
+            url: '@Url.Action("GetCorpById","Corp")',
+            data: { corp_id: '@ViewBag.corp_id' },
+            success: function (res) {
+                if (res.code == 0) {
+                    $("#CorpCode").val(res.data.CorpCode);
+                    $("#CorpName").val(res.data.CorpName);
+                    $("#Fax").val(res.data.Fax);
+                    $("#Zip").val(res.data.Zip);
+                    $("#Email").val(res.data.Email);
+                    $("#TaxRqNumber").val(res.data.TaxRqNumber);
+                    $("#ContractPersonName").val(res.data.ContractPersonName);
+                    $("#ContractPersonPhone").val(res.data.ContractPersonPhone);
+                    $("#ContractPersonIdentity").val(res.data.ContractPersonIdentity);
+                    $("#LawPersonName").val(res.data.LawPersonName);
+                    $("#LawPersonPhone").val(res.data.LawPersonPhone);
+                    $("#LawPersonIdentity").val(res.data.LawPersonIdentity);
+                    $("#Address").val(res.data.Address);
+                    $("#Note").val(res.data.Note);
+                } else {
+                    layer.msg(res.msg, { icon: 5 });
+                }
+            }, error: function (res) {
+                layer.msg("接口出错，请联系管理员", { icon: 5 });
+            }
+        });
+    });
+</script>

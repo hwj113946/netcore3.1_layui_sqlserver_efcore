@@ -1,0 +1,215 @@
+﻿
+@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+
+<html>
+<head>
+    <meta name="viewport" content="width=device-width" />
+    <title>MenuEdit</title>
+    <link href="~/layui/css/layui.css" rel="stylesheet" />
+    <script src="~/layui/layui.js"></script>
+    <script src="~/js/jquery-3.2.1.min.js"></script>
+    <script src="~/js/xm-select.js"></script>
+</head>
+<body>
+    <form class="layui-form" style="text-align:center;">
+        <br />
+        <div class="layui-form-item">
+            <div class="layui-inline">
+                <label class="layui-form-label">所属上级</label>
+                <div class="layui-input-inline">
+                    <div id="xm" class="xm-select-demo"></div>
+                </div>
+            </div>
+            <div class="layui-inline">
+                <label class="layui-form-label"><span style="color:red;">*</span>菜单名称</label>
+                <div class="layui-input-inline">
+                    <input type="text" id="menu_name" lay-verify="required" lay-reqtext="菜单名称不能为空" placeholder="请输入菜单名称" class="layui-input">
+                </div>
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <div class="layui-inline">
+                <label class="layui-form-label">菜单图标</label>
+                <div class="layui-input-inline">
+                    <input type="text" id="menu_icon" placeholder="请输入layui-icon代码" class="layui-input">
+                </div>
+            </div>
+            <div class="layui-inline">
+                <label class="layui-form-label"><span style="color:red;">*</span>菜单类型</label>
+                <div class="layui-input-inline">
+                    <select name=" menuType" id="menuType" lay-filter="menuType"></select>
+                </div>
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <div class="layui-inline">
+                <label class="layui-form-label">链接地址</label>
+                <div class="layui-input-inline">
+                    <input type="text" id="menu_url" lay-reqtext="" placeholder="界面时必须输入链接地址" class="layui-input">
+                </div>
+            </div>
+            <div class="layui-inline">
+                <label class="layui-form-label"><span style="color:red;">*</span>菜单排序</label>
+                <div class="layui-input-inline">
+                    <input type="text" id="menu_sort" lay-verify="required" placeholder="请输入菜单排序" class="layui-input">
+                </div>
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <div align="center">
+                <button class="layui-btn" lay-submit="" lay-filter="btnCommit">保存</button>
+                &nbsp;
+                <button class="layui-btn layui-btn-danger" onclick="btnClose()">关闭</button>
+            </div>
+        </div>
+    </form>
+    <script>
+        var form, layer;
+        function menuTypeRender(form) {
+            $('#menuType').append('<option value="菜单">菜单</option>');
+            $('#menuType').append('<option value="界面">界面</option>');
+            $("#corpSelect").val('@ViewBag.type');
+            form.render('select');
+        }
+        layui.use(['form', 'layedit', 'laydate'], function () {
+            form = layui.form, layer = layui.layer;
+            GetMenuTree();
+            menuTypeRender(form);
+            formReady(form);
+            //监听提交
+            form.on('submit(btnCommit)', function (data) {
+                var menu_name = $("#menu_name").val();
+                var menu_icon = $("#menu_icon").val();
+                var menu_type = $('select[name="menuType"] option:selected').val();
+                var menu_url = $("#menu_url").val();
+                var menu_sort = $("#menu_sort").val();
+                var parent_id = xm.getValue('valueStr');
+                if (parent_id == null || parent_id == undefined || parent_id == "") {
+                    parent_id = '@ViewBag.parentid';
+                }
+                var zt = '@ViewBag.zt';
+                var url = zt == "add" ? '@Url.Action("Insert","Menu")' : '@Url.Action("Modify", "Menu")';
+                var datas = zt == "add" ?
+                    {
+                         menu_name: menu_name, menu_icon: menu_icon, menu_type: menu_type,
+                        menu_url: menu_url, menu_sort: menu_sort, parent_menu_id: parent_id
+                    }
+                    :
+                    {
+                         menu_name: menu_name, menu_icon: menu_icon, menu_type: menu_type,
+                        menu_url: menu_url, menu_sort: menu_sort, parent_menu_id: parent_id, menu_id: '@ViewBag.menuid'
+                    };
+                $.ajax({
+                    type: 'post',
+                    dataType: 'json',
+                    url: url,
+                    data: datas,
+                    success: function (res) {
+                        if (res.code == 200) {
+                            var index = parent.layer.getFrameIndex(window.name);
+                            parent.layer.close(index);
+                            parent.layer.msg(res.msg, {
+                                icon: 6
+                            });
+                            parent.Refresh();
+                            return false;
+                        } else {
+                            layer.msg(res.msg, {
+                                icon: 5
+                            });
+                        }
+                    },
+                    error: function (res) {
+                        parent.layer.msg("接口出错，请联系管理员", {
+                            icon: 5
+                        });
+                        return false;
+                    }
+                });
+                return false;
+            });
+        });
+
+        function GetMenuTree() {
+            $.ajax({
+                type: 'Get',
+                dataType: 'json',
+                url: '@Url.Action("GetMenuTree", "Menu")',
+                success: function (res) {
+                    if (res.code == 0) {
+                        xm = xmSelect.render({
+                            el: '#xm',
+                            data: res.data,
+                            //显示为text模式
+                            model: { label: { type: 'text' } },
+                            //单选模式
+                            radio: true,
+                            //选中关闭
+                            clickClose: true,
+                            //树
+                            tree: {
+                                show: true,
+                                //非严格模式
+                                strict: false,
+                                //默认展开节点
+                                expandedKeys: [-1],
+                            },
+                            //展开所有节点
+                            expandedKeys: true
+                        });
+                        xm.setValue([@ViewBag.parentid]);
+                        if ('@ViewBag.parentid' == "0" && '@ViewBag.isone' == "1") {
+                            xm.update({ disabled: true });
+                        }
+                    }
+                }, error: function () {
+                    layer.msg("接口出错，请联系管理员", { icon: 5 });
+                }
+            });
+        }
+
+        function btnClose() {
+            var index = parent.layer.getFrameIndex(window.name);
+            parent.layer.close(index);
+        }
+        function formReady(form) {
+            if ('@ViewBag.type' == "界面") {
+                $('#menuType').val("界面")
+                $("#menuType").attr("disabled", "disabled");
+                form.render('select');
+            } else if('@ViewBag.type'=="菜单"){
+                $('#menuType').val("菜单")
+                $("#menuType").attr("disabled", "disabled");
+                form.render('select');
+            }
+            if ('@ViewBag.zt' == "update") {
+                $.ajax({
+                    type: 'get',
+                    dataType: 'json',
+                    url: '@Url.Action("GetMenuInfoById", "Menu")',
+                    data: { menu_id: '@ViewBag.menuid' },
+                    success: function (res) {
+                        if (res.code ==0) {
+                            $("#menu_name").val(res.data.MenuName);
+                            $("#menu_icon").val(res.data.MenuIcon);
+                            $('#menuType').val(res.data.MenuType)
+                            $("#menu_url").val(res.data.MenuUrl);
+                            $("#menu_sort").val(res.data.MenuSort);
+                            $("#menuType").attr("disabled","disabled");
+                            form.render('select');
+                        } else {
+                            layer.msg(res.msg, { icon: 5 });
+                        }
+                    }, error: function (res) {
+                        layer.msg("接口出错，请联系管理员", { icon: 5 });
+                    }
+                });
+            }
+        }
+    </script>
+</body>
+</html>
