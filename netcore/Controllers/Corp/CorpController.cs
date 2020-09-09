@@ -485,7 +485,7 @@ namespace netcore.Controllers.Base.Corp
 
         #region 导出公司
         [HttpPost]
-        public async Task<IActionResult> GetCorpForExport(string CorpCode, string CorpName, string Status)
+        public async Task<IActionResult> Export(string CorpCode, string CorpName, string Status)
         {
             try
             {
@@ -542,7 +542,6 @@ namespace netcore.Controllers.Base.Corp
                     var returnMsg = "";
                     if (excel.Count>0)
                     {
-                        var list = new List<AppCorp>();
                         using (var tran=context.Database.BeginTransaction())
                         {
                             try
