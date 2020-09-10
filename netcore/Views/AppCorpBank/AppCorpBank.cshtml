@@ -44,7 +44,7 @@
                 if (res.code == 0) {
                     $('#corpSelect').append('<option value="-99">全部</option>');
                     $.each(res.data, function (index, item) {
-                        $('#corpSelect').append('<option value="' + item.CORP_ID + '">' + item.CORP_NAME + '</option>');
+                        $('#corpSelect').append('<option value="' + item.CorpId + '">' + item.CorpName + '</option>');
                     });
                     $("#corpSelect").val('-99');
                     form.render('select');
@@ -387,20 +387,15 @@
         _form.data = '';
         _form.method = 'post';
         var _input = document.createElement("input");
-        _input.setAttribute("name", "CorpName");
+        _input.setAttribute("name", "CorpId");
         _input.setAttribute("type", "hidden");
-        _input.setAttribute("value", $("#CorpName").val());
+        _input.setAttribute("value", $('select[name="Corp"] option:selected').val());
         var _input2 = document.createElement("input");
-        _input2.setAttribute("name", "status");
+        _input2.setAttribute("name", "Status");
         _input2.setAttribute("type", "hidden");
         _input2.setAttribute("value", $('#Status input[name="radioName"]:checked ').val());
-        var _input3 = document.createElement("input");
-        _input.setAttribute("name", "CorpCode");
-        _input.setAttribute("type", "hidden");
-        _input.setAttribute("value", $("#CorpCode").val());
         _form.appendChild(_input);
         _form.appendChild(_input2);
-        _form.appendChild(_input3);
         _form.submit();
     }
 

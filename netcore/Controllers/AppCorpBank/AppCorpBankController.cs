@@ -33,6 +33,14 @@ namespace netcore.Controllers.AppCorpBank
             return View();
         }
 
+        [CheckCustomer]
+        public IActionResult AppCorpBankEdit()
+        {
+            ViewBag.status = HttpContext.Request.Query["status"].ToString();
+            ViewBag.corp_bank_id = ViewBag.status == "add" ? "" : HttpContext.Request.Query["Rowid"].ToString();
+            return View();
+        }
+
         #region 获取公司银行账号：列表
         [HttpGet]
         public async Task<IActionResult> GetList(int CorpId, string Status, int page, int limit)
@@ -90,7 +98,7 @@ namespace netcore.Controllers.AppCorpBank
         }
         #endregion
 
-        #region 根据ID获取公司
+        #region 根据ID获取公司银行账号信息
         [HttpGet]
         public async Task<IActionResult> GetById(int CorpBankId)
         {
@@ -321,22 +329,59 @@ namespace netcore.Controllers.AppCorpBank
         {
             try
             {
-                var list = await (from b in context.AppCorpBanks
-                                  join c in context.AppCorps
-                                  on b.CorpId equals c.CorpId
-                                  select new
-                                  {
-                                      CorpName = c.CorpName,
-                                      b.BankProvince,
-                                      b.BankCity,
-                                      b.BankName,
-                                      b.BankAccount,
-                                      b.BankNo,
-                                      b.Note,
-                                      b.Status
-                                  }).ToListAsync();
-                byte[] buffer = ExcelHelper.Export(list, "公司银行账号信息", ExcelTitle.Corp).GetBuffer();
-                return File(buffer, "application/ms-excel", "公司银行账号信息.xls");
+                if (CorpId == -99)
+                {
+                    var list = await (from b in context.AppCorpBanks
+                                      join c in context.AppCorps
+                                      on b.CorpId equals c.CorpId
+                                      select new
+                                      {
+                                          CorpName = c.CorpName,
+                                          b.BankProvince,
+                                          b.BankCity,
+                                          b.BankName,
+                                          b.BankAccount,
+                                          b.BankNo,
+                                          b.Note,
+                                          b.Status
+                                      }).ToListAsync();
+                    if (!string.IsNullOrEmpty(Status))
+                    {
+                        if (Status != "全部")
+                        {
+                            list = list.Where(u => u.Status == Status).ToList();
+                        }
+                    }
+                    byte[] buffer = ExcelHelper.Export(list, "公司银行账号信息", ExcelTitle.AppCorpBank).GetBuffer();
+                    return File(buffer, "application/ms-excel", "公司银行账号信息.xls");
+                }
+                else
+                {
+                    var list = await (from b in context.AppCorpBanks
+                                      join c in context.AppCorps
+                                      on b.CorpId equals c.CorpId
+                                      where b.CorpId.Equals(CorpId)
+                                      select new
+                                      {
+                                          CorpName = c.CorpName,
+                                          b.BankProvince,
+                                          b.BankCity,
+                                          b.BankName,
+                                          b.BankAccount,
+                                          b.BankNo,
+                                          b.Note,
+                                          b.Status
+                                      }).ToListAsync();
+                    if (!string.IsNullOrEmpty(Status))
+                    {
+                        if (Status != "全部")
+                        {
+                            list = list.Where(u => u.Status == Status).ToList();
+                        }
+                    }
+                    byte[] buffer = ExcelHelper.Export(list, "公司银行账号信息", ExcelTitle.AppCorpBank).GetBuffer();
+                    return File(buffer, "application/ms-excel", "公司银行账号信息.xls");
+                }
             }
             catch (Exception ex)
             {
@@ -375,29 +420,36 @@ namespace netcore.Controllers.AppCorpBank
                             {
                                 for (int i = 0; i < excel.Count; i++)
                                 {
-                                    var corp = await context.AppCorps.SingleOrDefaultAsync(u => u.CorpCode == excel[i].CorpCode && u.CorpName == excel[i].CorpName);
-                                    if (corp!=null)
+                                    if (string.IsNullOrEmpty(excel[i].BankAccount))
                                     {
-                                        context.AppCorpBanks.Add(new Models.AppCorpBank()
-                                        {
-                                            BankAccount = excel[i].BankAccount ?? "",
-                                            BankCity = excel[i].BankCity ?? "",
-                                            BankName = excel[i].BankName ?? "",
-                                            BankNo = excel[i].BankNo ?? "",
-                                            BankProvince = excel[i].BankProvince ?? "",
-                                            CorpId=corp.CorpId,
-                                            Note = excel[i].Note ?? "",
-                                            Status = excel[i].Status ?? "",
-                                            CreationDate = DateTime.Now,
-                                            CreationUser = HttpContext.Session.GetInt32("user_id")
-                                        });
-                                        await context.SaveChangesAsync();
-                                        returnMsg += "第" + (i + 1) + "行【" + excel[i].BankName + "】" + excel[i].BankAccount + "：执行成功。\r\n";
+                                        returnMsg += "第" + (i + 1) + "行：银行账号不能为空。\r\n";
                                     }
                                     else
                                     {
-                                        returnMsg += "第" + (i + 1) + "行【" + excel[i].BankName + "】" + excel[i].BankAccount + "：公司不存在。\r\n";
-                                    }                                    
+                                        var corp = await context.AppCorps.SingleOrDefaultAsync(u => u.CorpCode == excel[i].CorpCode && u.CorpName == excel[i].CorpName);
+                                        if (corp != null)
+                                        {
+                                            context.AppCorpBanks.Add(new Models.AppCorpBank()
+                                            {
+                                                BankAccount = excel[i].BankAccount ?? "",
+                                                BankCity = excel[i].BankCity ?? "",
+                                                BankName = excel[i].BankName ?? "",
+                                                BankNo = excel[i].BankNo ?? "",
+                                                BankProvince = excel[i].BankProvince ?? "",
+                                                CorpId = corp.CorpId,
+                                                Note = excel[i].Note ?? "",
+                                                Status = excel[i].Status ?? "",
+                                                CreationDate = DateTime.Now,
+                                                CreationUser = HttpContext.Session.GetInt32("user_id")
+                                            });
+                                            await context.SaveChangesAsync();
+                                            returnMsg += "第" + (i + 1) + "行【" + excel[i].BankName + "】" + excel[i].BankAccount + "：执行成功。\r\n";
+                                        }
+                                        else
+                                        {
+                                            returnMsg += "第" + (i + 1) + "行【" + excel[i].BankName + "】" + excel[i].BankAccount + "：公司不存在。\r\n";
+                                        }
+                                    }
                                 }
                                 await tran.CommitAsync();
                                 //找到文件，删除

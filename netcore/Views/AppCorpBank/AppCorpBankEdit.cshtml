@@ -1,5 +1,176 @@
-﻿@*
-    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
-*@
-@{
-}
+﻿@{Layout = null;}
+<script src="~/js/jquery-3.2.1.min.js"></script>
+<link href="~/layui/css/layui.css" rel="stylesheet" />
+<script src="~/layui/layui.js"></script>
+<form style="text-align:center;" class="layui-form">
+    <br />
+    <div class="layui-form-item">
+        <div class="layui-inline">
+            <label class="layui-form-label"><span style="color:red;">*</span>所属公司</label>
+            <div class="layui-input-inline">
+                <select name="Corp" id="corpSelect" lay-verify="required" lay-filter="corpSelect" lay-search></select>
+            </div>
+            <label class="layui-form-label">开户行省份</label>
+            <div class="layui-input-inline">
+                <input type="text" class="layui-input" id="BankProvince" placeholder="开户行省份">
+            </div>
+        </div>
+    </div>
+    <div class="layui-form-item">
+        <div class="layui-inline">
+            <label class="layui-form-label">开户行城市</label>
+            <div class="layui-input-inline">
+                <input type="text" class="layui-input" id="BankCity" placeholder="开户行城市">
+            </div>
+            <label class="layui-form-label">开户银行</label>
+            <div class="layui-input-inline">
+                <input type="text" class="layui-input" id="BankName" placeholder="开户银行">
+            </div>
+        </div>
+    </div>
+    <div class="layui-form-item">
+        <div class="layui-inline">
+            <label class="layui-form-label"><span style="color:red;">*</span>银行帐号</label>
+            <div class="layui-input-inline">
+                <input type="text" class="layui-input" lay-verify="required" id="BankAccount" placeholder="银行帐号">
+            </div>
+            <label class="layui-form-label">行号</label>
+            <div class="layui-input-inline">
+                <input type="text" class="layui-input" id="BankNo" placeholder="行号">
+            </div>
+        </div>
+    </div>
+    <div class="layui-form-item layui-form-text">
+        <label class="layui-form-label">备注</label>
+        <div class="layui-input-block">
+            <textarea class="layui-textarea" id="Note" placeholder="备注"></textarea>
+        </div>
+    </div>
+    <div class="layui-form-item">
+        <div align="center">
+            <button class="layui-btn" id="btnCommit" lay-submit="" lay-filter="btnCommit">保存</button>
+            &nbsp;
+            <button class="layui-btn layui-btn-danger" onclick="btnClose()">关闭</button>
+        </div>
+    </div>
+</form>
+
+<script>
+    function GetCorp(form) {
+        $.ajax({
+            type: 'get',
+            dataType: 'json',
+            url: '@Url.Action("GetCorp", "Public")',
+            success: function (res) {
+                if (res.code == 0) {
+                    $.each(res.data, function (index, item) {
+                        $('#corpSelect').append('<option value="' + item.CorpId + '">' + item.CorpName + '</option>');
+                    });
+                    form.render('select');
+                } else {
+                    layer.msg(res.msg, {
+                        icon: 5
+                    });
+                }
+            },
+            error: function (res) {
+                layer.msg("加载公司信息出错，请联系管理员", {
+                    icon: 5
+                });
+            }
+        });
+    }
+
+    var layer, form;
+    layui.use(["layer", "form"], function () {
+        layer = layui.layer, form = layui.form;
+        form.render();
+        GetCorp(form);
+        form.on("submit(btnCommit)", function (data) {
+            var CorpId = $('select[name="Corp"] option:selected').val();
+            var BankProvince = $("#BankProvince").val();
+            var BankCity = $("#BankCity").val();
+            var BankName = $("#BankName").val();
+            var BankAccount = $("#BankAccount").val();
+            var BankNo = $("#BankNo").val();
+            var Note = $("#Note").val();
+            var status = '@ViewBag.status';
+            var url = status == "add" ? '@Url.Action("Insert","AppCorpBank")' : '@Url.Action("Modify", "AppCorpBank")';
+            var data = status == "add" ?
+                {
+                    CorpId: CorpId
+                    , BankProvince: BankProvince
+                    , BankCity: BankCity
+                    , BankName: BankName
+                    , BankAccount: BankAccount
+                    , BankNo: BankNo
+                    , Note: Note
+                }
+                :
+                {
+                    CorpBankId: '@ViewBag.corp_bank_id'
+                    , CorpId: CorpId
+                    , BankProvince: BankProvince
+                    , BankCity: BankCity
+                    , BankName: BankName
+                    , BankAccount: BankAccount
+                    , BankNo: BankNo
+                    , Note: Note
+
+                };
+            $.ajax({
+                type: 'post',
+                dataType: 'json',
+                url: url,
+                data: data,
+                success: function (res) {
+                    if (res.code == 200) {
+                        parent.layer.close(parent.layer.getFrameIndex(window.name));
+                        parent.layer.msg(res.msg, {
+                            icon: 6
+                        });
+                        parent.Refresh();
+                        return false;
+                    } else {
+                        layer.msg(res.msg, { icon: 5 });
+                        return false;
+                    }
+                },
+                error: function () {
+                    layer.msg("接口出错，请联系管理员", { icon: 5 });
+                    return false;
+                }
+            });
+            return false;
+        });
+    });
+
+    function btnClose() {
+        var index = parent.layer.getFrameIndex(window.name);
+        parent.layer.close(index);
+    }
+
+    $(document).ready(function () {
+        if ('@ViewBag.status' == "add") { return; }
+        $.ajax({
+            type: 'get',
+            dataType: 'json',
+            url: '@Url.Action("GetById", "AppCorpBank")',
+            data: { CorpBankId: '@ViewBag.corp_bank_id' },
+            success: function (res) {
+                if (res.code == 0) {
+                    $("#CorpId").val(res.data.CorpId);
+                    $("#BankProvince").val(res.data.BankProvince);
+                    $("#BankCity").val(res.data.BankCity);
+                    $("#BankName").val(res.data.BankName);
+                    $("#BankAccount").val(res.data.BankAccount);
+                    $("#BankNo").val(res.data.BankNo);
+                    $("#Note").val(res.data.Note);
+                    form.render('select');
+                }
+            }, error: function (res) {
+                layer.msg("接口出错，请联系管理员", { icon: 5 });
+            }
+        });
+    });
+</script>
