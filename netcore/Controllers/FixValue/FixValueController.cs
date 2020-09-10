@@ -77,7 +77,7 @@ namespace netcore.Controllers.FixValue
             catch (Exception ex)
             {
                 logger.LogInformation(HttpContext.Session.GetString("who") + "：查询失败。" + ex.Message);
-                return Json(new { code = 0, msg = "查询失败，请联系管理员", count = 0, data = new { } });
+                return Json(new { code = 1, msg = "查询失败，请联系管理员", count = 0, data = new { } });
             }
         }
         #endregion
@@ -293,7 +293,7 @@ namespace netcore.Controllers.FixValue
             catch (Exception ex)
             {
                 logger.LogInformation(HttpContext.Session.GetString("who") + "：查询失败。" + ex.Message);
-                return Json(new { code = 0, msg = "查询失败，请联系管理员", count = 0, data = new { } });
+                return Json(new { code = 1, msg = "查询失败，请联系管理员", count = 0, data = new { } });
             }
         }
         #endregion

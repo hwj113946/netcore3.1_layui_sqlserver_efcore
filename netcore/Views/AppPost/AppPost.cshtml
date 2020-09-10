@@ -26,10 +26,13 @@
             <select name="Corp" id="corpSelect" lay-verify="" lay-filter="corpSelect" lay-search></select>
         </div>
         <div class="layui-input-inline">
-            <input type="text" class="layui-input" id="DeptCode" placeholder="部门代码">
+            <select name="Dept" id="deptSelect" lay-verify="" lay-filter="deptSelect" lay-search></select>
         </div>
         <div class="layui-input-inline">
-            <input type="text" class="layui-input" id="DeptName" placeholder="部门名称">
+            <input type="text" class="layui-input" id="PostCode" placeholder="岗位代码">
+        </div>
+        <div class="layui-input-inline">
+            <input type="text" class="layui-input" id="PostName" placeholder="岗位名称">
         </div>
         <div class="layui-input-inline" id="Status">
             <input type="radio" name="radioName" value="全部" lay-filter="radio" title="全部" checked="" class="">
@@ -41,7 +44,7 @@
     <table id="table1" lay-filter="table1"></table>
 </form>
 <script>
-        function GetCorp(form) {
+    function GetCorp(form) {
         $.ajax({
             type: 'get',
             dataType: 'json',
@@ -68,33 +71,69 @@
         });
     }
 
+    function GetDept(form) {
+        document.getElementById("deptSelect").options.length = 0;
+        $.ajax({
+            type: 'get',
+            dataType: 'json',
+            url: '@Url.Action("GetDept", "Public")',
+            data: {
+                CorpId: $('select[name="Corp"] option:selected').val()
+            },
+            success: function (res) {
+                if (res.code == 0) {
+                    $('#deptSelect').append('<option value="-99">全部</option>');
+                    $.each(res.data, function (index, item) {
+                        $('#deptSelect').append('<option value="' + item.DeptId + '">' + item.DeptName + '</option>');
+                    });
+                    $("#deptSelect").val('-99');
+                    form.render('select');
+                } else {
+                    layer.msg(res.msg, {
+                        icon: 5
+                    });
+                }
+            },
+            error: function (res) {
+                layer.msg("加载部门信息出错，请联系管理员", {
+                    icon: 5
+                });
+            }
+        });
+    }
     var table, ins, layer, form, upload, files;
     layui.use(['table', 'form', 'upload'], function () {
         table = layui.table, layer = layui.layer, form = layui.form, upload = layui.upload;
         form.render();
         GetCorp(form);
+        GetDept(form);
         ins = table.render({
             elem: '#table1',
             toolbar: '#toolbar'
             , defaultToolbar: ['filter']
-            , cellMinWidth:120
+            , cellMinWidth: 120
             , height: document.documentElement.clientHeight - 80
-            , url: '@Url.Action("GetList", "AppDept")',
+            , url: '@Url.Action("GetList", "AppPost")',
             where: {
-                CorpId:'-99',
+                CorpId: '-99',
+                DeptId: '-99',
                 Status: '全部',
-                DeptCode: '',
-                DeptName:''
+                PostCode: '',
+                PostName: ''
             }, method: 'get'
             , page: true //开启分页
             , limit: 20
             , limits: [20, 50, 100]
             , cols: [[ //表头
                 { type: 'checkbox', fixed: 'left' }
-                , { field: 'DeptId', title: '部门ID', hide: true }
+                , { field: 'PostId', title: '岗位ID', hide: true }
+                , { field: 'ParentPostId', title: '上级岗位ID', hide: true }
                 , { field: 'CorpName', title: '所属公司', sort: true }
-                , { field: 'DeptCode', title: '部门代码', sort: true }
-                , { field: 'DeptName', title: '部门名称', sort: true }
+                , { field: 'DeptName', title: '所属部门', sort: true }
+                , { field: 'PostCode', title: '岗位代码', sort: true }
+                , { field: 'PostName', title: '岗位名称', sort: true }
+                , { field: 'ParentPostCode', title: '上级岗位代码', sort: true }
+                , { field: 'ParentPostName', title: '上级岗位名称', sort: true }
                 , { field: 'Note', title: '备注', sort: true }
                 , { field: 'Status', title: '状态', sort: true }
             ]], loading: true,
@@ -160,16 +199,21 @@
             }
             Refresh();
         });
+        //监听公司下拉框变更
+        form.on('select(corpSelect)', function (data) {
+            GetDept(form);
+        });
     });
 
     function Refresh() {
         table.reload("table1", {
-            url: '@Url.Action("GetList", "AppDept")',
+            url: '@Url.Action("GetList", "AppPost")',
             where: {
                 CorpId: $('select[name="Corp"] option:selected').val(),
+                DeptId: $('select[name="Dept"] option:selected').val(),
                 Status: $('#Status input[name="radioName"]:checked ').val(),
-                DeptCode: $("#DeptCode").val(),
-                DeptName: $("#DeptName").val()
+                PostCode: $("#PostCode").val(),
+                PostName: $("#PostName").val()
             }, method: "get",
             page: {
                 curr: 1
@@ -181,9 +225,9 @@
     function btnAdd() {
         layer.open({
             type: 2,
-            area: ["900px", "95%"],
-            title: "新增 - 部门",
-            content: '@Url.Action("AppDeptEdit", "AppDept")' + '?status=add&Rowid='
+            area: ["750px", "95%"],
+            title: "新增 - 岗位",
+            content: '@Url.Action("AppPostEdit", "AppPost")' + '?status=add&Rowid='
         });
     }
     //编辑
@@ -198,9 +242,9 @@
             }
             layer.open({
                 type: 2,
-                area: ["900px", "95%"],
-                title: "编辑 - 部门",
-                content: '@Url.Action("AppDeptEdit", "AppDept")' + '?status=update&Rowid=' + checkStatus.data[0].DeptId
+                area: ["750px", "95%"],
+                title: "编辑 - 岗位",
+                content: '@Url.Action("AppPostEdit", "AppPost")' + '?status=update&Rowid=' + checkStatus.data[0].PostId
             });
         } else {
             layer.msg('请先勾选数据', {
@@ -213,10 +257,10 @@
         var checkStatus = table.checkStatus('table1');
         if (checkStatus.data.length > 0) {
             var obj = [];
-            layer.confirm('即将删除该部门及该部门下的岗位、人员(失效)，是否删除？', { btn: ['是', '否'], icon: 3, title: '提示' }, function (index) {
+            layer.confirm('即将删除该岗位及该岗位下的人员(失效)，是否删除？', { btn: ['是', '否'], icon: 3, title: '提示' }, function (index) {
                 for (var i = 0; i < checkStatus.data.length; i++) {
                     if (checkStatus.data[i].Status == "编辑") {
-                        obj.push(checkStatus.data[i].DeptId);
+                        obj.push(checkStatus.data[i].PostId);
                     }
                 }
                 if (obj.length > 0) {
@@ -224,7 +268,7 @@
                         type: 'post',
                         dataType: 'json',
                         traditional: true,
-                        url: '@Url.Action("Delete", "AppDept")',
+                        url: '@Url.Action("Delete", "AppPost")',
                         data: {
                             id: obj
                         },
@@ -252,6 +296,7 @@
             });
         }
     }
+
     //启用
     function btnEnable() {
         var checkStatus = table.checkStatus('table1');
@@ -260,7 +305,7 @@
             layer.confirm('是否启用？', { btn: ['是', '否'], icon: 3, title: '提示' }, function (index) {
                 for (var i = 0; i < checkStatus.data.length; i++) {
                     if (checkStatus.data[i].Status == "编辑" || checkStatus.data[i].Status == "失效") {
-                        obj.push(checkStatus.data[i].DeptId);
+                        obj.push(checkStatus.data[i].PostId);
                     }
                 }
                 if (obj.length > 0) {
@@ -268,7 +313,7 @@
                         type: 'post',
                         dataType: 'json',
                         traditional: true,
-                        url: '@Url.Action("EnableStatus", "AppDept")',
+                        url: '@Url.Action("EnableStatus", "AppPost")',
                         data: {
                             id: obj
                         },
@@ -305,7 +350,7 @@
             layer.confirm('是否失效？', { btn: ['是', '否'], icon: 3, title: '提示' }, function (index) {
                 for (var i = 0; i < checkStatus.data.length; i++) {
                     if (checkStatus.data[i].Status == "编辑" || checkStatus.data[i].Status == "有效") {
-                        obj.push(checkStatus.data[i].DeptId);
+                        obj.push(checkStatus.data[i].PostId);
                     }
                 }
                 if (obj.length > 0) {
@@ -313,7 +358,7 @@
                         type: 'post',
                         dataType: 'json',
                         traditional: true,
-                        url: '@Url.Action("FailureStatus", "AppDept")',
+                        url: '@Url.Action("FailureStatus", "AppPost")',
                         data: {
                             id: obj
                         },
@@ -349,7 +394,7 @@
             layer.confirm('是否恢复编辑状态？', { btn: ['是', '否'], icon: 3, title: '提示' }, function (index) {
                 for (var i = 0; i < checkStatus.data.length; i++) {
                     if (checkStatus.data[i].Status == "有效" || checkStatus.data[i].Status == "失效") {
-                        obj.push(checkStatus.data[i].DeptId);
+                        obj.push(checkStatus.data[i].PostId);
                     }
                 }
                 if (obj.length > 0) {
@@ -357,7 +402,7 @@
                         type: 'post',
                         dataType: 'json',
                         traditional: true,
-                        url: '@Url.Action("ResetStatus", "AppDept")',
+                        url: '@Url.Action("ResetStatus", "AppPost")',
                         data: {
                             id: obj
                         },
@@ -390,7 +435,7 @@
     function btnExport() {
         var _form = document.createElement("form");
         document.body.appendChild(_form);
-        _form.action = '@Url.Action("Export", "AppDept")';
+        _form.action = '@Url.Action("Export", "AppPost")';
         _form.data = '';
         _form.method = 'post';
         var _input = document.createElement("input");
@@ -402,28 +447,33 @@
         _input2.setAttribute("type", "hidden");
         _input2.setAttribute("value", $('#Status input[name="radioName"]:checked ').val());
         var _input3 = document.createElement("input");
-        _input3.setAttribute("name", "DeptCode");
+        _input3.setAttribute("name", "PostCode");
         _input3.setAttribute("type", "hidden");
-        _input3.setAttribute("value", $('#DeptCode').val());
+        _input3.setAttribute("value", $('#PostCode').val());
         var _input4 = document.createElement("input");
-        _input4.setAttribute("name", "DeptName");
+        _input4.setAttribute("name", "PostName");
         _input4.setAttribute("type", "hidden");
-        _input4.setAttribute("value", $('#DeptName').val());
+        _input4.setAttribute("value", $('#PostName').val());
+        var _input5 = document.createElement("input");
+        _input5.setAttribute("name", "DeptId");
+        _input5.setAttribute("type", "hidden");
+        _input5.setAttribute("value", $('select[name="Dept"] option:selected').val());
         _form.appendChild(_input);
         _form.appendChild(_input2);
         _form.appendChild(_input3);
         _form.appendChild(_input4);
+        _form.appendChild(_input5);
         _form.submit();
     }
 
     function btnImport() {
         var reg = new RegExp('/', "g");//g,表示全部替换。
-        var uploadUrl = '@Url.Action("Import","AppDept")';
+        var uploadUrl = '@Url.Action("Import", "AppPost")';
         layer.open({
             type: 2,
             area: ['650px', '450px'],
             title: 'Excel - 导入',
-            content: '@Url.Action("ExcelImport", "Public")' + '?UploadUrl=' + uploadUrl.replace(reg, "{xg}") + '&ExcelTempUrl=部门导入模板.xls'
+            content: '@Url.Action("ExcelImport", "Public")' + '?UploadUrl=' + uploadUrl.replace(reg, "{xg}") + '&ExcelTempUrl=岗位导入模板.xls'
         });
     }
 </script>

@@ -82,7 +82,7 @@ namespace netcore.Controllers.Base.Corp
             catch (Exception ex)
             {
                 logger.LogInformation(HttpContext.Session.GetString("who") + "：查询新闻失败。" + ex.Message);
-                return Json(new { code = 0, msg = "查询失败，请联系管理员", count = 0, data = new { } });
+                return Json(new { code = 1, msg = "查询失败，请联系管理员", count = 0, data = new { } });
             }
         }
         #endregion
@@ -523,7 +523,25 @@ namespace netcore.Controllers.Base.Corp
                         list = list.Where(u => u.CorpName.Contains(CorpName)).ToList();
                     }
                 }
-                byte[] buffer = ExcelHelper.Export(list, "公司", ExcelTitle.Corp).GetBuffer() ;
+                var list1 = list.Select(u => new
+                {
+                    u.CorpCode,
+                    u.CorpName,
+                    u.Fax,
+                    u.Zip,
+                    u.Email,
+                    u.ContractPersonName,
+                    u.ContractPersonPhone,
+                    u.ContractPersonIdentity,
+                    u.LawPersonName,
+                    u.LawPersonPhone,
+                    u.LawPersonIdentity,
+                    u.Address,
+                    u.TaxRqNumber,
+                    u.Note,
+                    u.Status
+                }).ToList();
+                byte[] buffer = ExcelHelper.Export(list1, "公司", ExcelTitle.Corp).GetBuffer() ;
                 return File(buffer, "application/ms-excel", "公司数据导出.xls");
             }
             catch (Exception ex)

@@ -46,7 +46,41 @@ namespace netcore.Controllers.Public
                 logger.LogInformation(HttpContext.Session.GetString("who") + "查询公司。" + ex.Message);
                 return Json(new { code = 1, msg = "查询时出错，请联系管理员", data = new { } });
             }
-        } 
+        }
+        #endregion
+
+        #region 根据CorpId获取有效状态的部门
+        [HttpGet]
+        public async Task<IActionResult> GetDept(int CorpId)
+        {
+            try
+            {
+                var list = await context.AppDepts.Where(u => u.Status == "有效" && u.CorpId == CorpId).ToListAsync();
+                return Json(new { code = 0, msg = "获取成功", data = list });
+            }
+            catch (Exception ex)
+            {
+                logger.LogInformation(HttpContext.Session.GetString("who") + "查询公司。" + ex.Message);
+                return Json(new { code = 1, msg = "查询时出错，请联系管理员", data = new { } });
+            }
+        }
+        #endregion
+
+        #region 根据DeptId获取有效状态的岗位
+        [HttpGet]
+        public async Task<IActionResult> GetPost(int DeptId)
+        {
+            try
+            {
+                var list = await context.AppPosts.Where(u => u.Status == "有效" && u.DeptId == DeptId).ToListAsync();
+                return Json(new { code = 0, msg = "获取成功", data = list });
+            }
+            catch (Exception ex)
+            {
+                logger.LogInformation(HttpContext.Session.GetString("who") + "查询公司。" + ex.Message);
+                return Json(new { code = 1, msg = "查询时出错，请联系管理员", data = new { } });
+            }
+        }
         #endregion
     }
 }

@@ -60,10 +60,22 @@ namespace netcore.Controllers
 
         public object GetMenuList()
         {
-            var menuList = context.AppMenus.FromSqlRaw(@"SELECT  m.*
-                FROM   app_menu m JOIN app_role_menu rm ON m.menu_id = rm.menu_id JOIN app_user_role ur
-                ON rm.role_id = ur.role_id AND ur.user_id = @user_id",
-            new object[] { new SqlParameter("@user_id", HttpContext.Session.GetInt32("user_id")) }).Distinct().ToList();
+            var menuList = (from m in context.AppMenus
+                            join rm in context.AppRoleMenus
+                            on m.MenuId equals rm.MenuId
+                            join ur in context.AppUserRoles
+                            on rm.RoleId equals ur.RoleId
+                            where ur.UserId.Equals(HttpContext.Session.GetInt32("user_id"))
+                            select new AppMenu
+                            {
+                                MenuId = m.MenuId,
+                                MenuName = m.MenuName,
+                                MenuIcon = m.MenuIcon,
+                                MenuSort = m.MenuSort,
+                                MenuType = m.MenuType,
+                                MenuUrl = m.MenuUrl,
+                                ParentMenuId = m.ParentMenuId
+                            }).ToList();
             var json = ToMenuJson(menuList, 0);
             return json;
         }
