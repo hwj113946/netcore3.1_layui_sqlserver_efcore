@@ -105,7 +105,7 @@ namespace netcore.Controllers.News
                     }
                     if (!string.IsNullOrEmpty(NewsTitle))
                     {
-                        list = list.Where(u => u.NewsTitle == NewsTitle).ToList();
+                        list = list.Where(u => u.NewsTitle.Contains(NewsTitle)).ToList();
                     }
                     count = Math.Ceiling(Convert.ToDecimal(list.Count) / Convert.ToDecimal(limit));
                     if (page > count)

@@ -1,6 +1,7 @@
 ﻿@{
     Layout = null;
 }
+
 <script src="~/js/jquery-3.2.1.min.js"></script>
 <script src="~/layui/layui.js"></script>
 <link href="~/layui/css/layui.css" rel="stylesheet" />
@@ -22,10 +23,13 @@
     <div class="layui-inline"></div>
     <div class="layui-inline">
         <div class="layui-input-inline">
-            <input type="text" id="CorpCode" lay-verify="" placeholder="公司代码" class="layui-input" />
+            <select name="Corp" id="corpSelect" lay-verify="" lay-filter="corpSelect" lay-search></select>
         </div>
         <div class="layui-input-inline">
-            <input type="text" id="CorpName" lay-verify="" placeholder="公司名称" class="layui-input" />
+            <input type="text" class="layui-input" id="DeptCode" placeholder="部门代码">
+        </div>
+        <div class="layui-input-inline">
+            <input type="text" class="layui-input" id="DeptName" placeholder="部门名称">
         </div>
         <div class="layui-input-inline" id="Status">
             <input type="radio" name="radioName" value="全部" lay-filter="radio" title="全部" checked="" class="">
@@ -37,43 +41,62 @@
     <table id="table1" lay-filter="table1"></table>
 </form>
 <script>
+        function GetCorp(form) {
+        $.ajax({
+            type: 'get',
+            dataType: 'json',
+            url: '@Url.Action("GetCorp", "Public")',
+            success: function (res) {
+                if (res.code == 0) {
+                    $('#corpSelect').append('<option value="-99">全部</option>');
+                    $.each(res.data, function (index, item) {
+                        $('#corpSelect').append('<option value="' + item.CorpId + '">' + item.CorpName + '</option>');
+                    });
+                    $("#corpSelect").val('-99');
+                    form.render('select');
+                } else {
+                    layer.msg(res.msg, {
+                        icon: 5
+                    });
+                }
+            },
+            error: function (res) {
+                layer.msg("加载公司信息出错，请联系管理员", {
+                    icon: 5
+                });
+            }
+        });
+    }
+
     var table, ins, layer, form, upload, files;
     layui.use(['table', 'form', 'upload'], function () {
         table = layui.table, layer = layui.layer, form = layui.form, upload = layui.upload;
         form.render();
+        GetCorp(form);
         ins = table.render({
             elem: '#table1',
             toolbar: '#toolbar'
             , defaultToolbar: ['filter']
             , cellMinWidth:120
             , height: document.documentElement.clientHeight - 80
-            , url: '@Url.Action("GetList", "Corp")',
+            , url: '@Url.Action("GetList", "AppDept")',
             where: {
-                CorpCode:'',
-                CorpName: '',
-                Status: '全部'
+                CorpId:'-99',
+                Status: '全部',
+                DeptCode: '',
+                DeptName:''
             }, method: 'get'
             , page: true //开启分页
             , limit: 20
             , limits: [20, 50, 100]
             , cols: [[ //表头
                 { type: 'checkbox', fixed: 'left' }
-                , { field: 'CorpId', title: '公司ID', hide: true }
-                , { field: 'CorpCode', title: '公司代码', sort: true }
-                , { field: 'CorpName', title: '公司名称', width: 180, sort: true }
-                , { field: 'Fax', title: '传真', sort: true }
-                , { field: 'Zip', title: '邮政编码', sort: true }
-                , { field: 'Email', title: '公司邮箱', sort: true }
-                , { field: 'TaxRqNumber', title: '纳税登记号', sort: true }
-                , { field: 'ContractPersonName', title: '联系人姓名', sort: true }
-                , { field: 'ContractPersonPhone', title: '联系人手机号', sort: true }
-                , { field: 'ContractPersonIdentity', title: '联系人身份证', sort: true }
-                , { field: 'LawPersonName', title: '法人姓名', sort: true }
-                , { field: 'LawPersonPhone', title: '法人手机号', sort: true }
-                , { field: 'LawPersonIdentity', title: '法人身份证', sort: true }
-                , { field: 'Address', title: '地址', width: 180, sort: true }
-                , { field: 'Note', title: '备注', width: 180, sort: true }
-                , { field: 'Status', title: '状态', width: 100, sort: true }
+                , { field: 'DeptId', title: '部门ID', hide: true }
+                , { field: 'CorpName', title: '所属公司', sort: true }
+                , { field: 'DeptCode', title: '部门代码', sort: true }
+                , { field: 'DeptName', title: '部门名称', sort: true }
+                , { field: 'Note', title: '备注', sort: true }
+                , { field: 'Status', title: '状态', sort: true }
             ]], loading: true,
             done: function () {
                 var val = $('#Status input[name="radioName"]:checked ').val();
@@ -139,30 +162,31 @@
         });
     });
 
-
     function Refresh() {
         table.reload("table1", {
-            url: '@Url.Action("GetList", "Corp")',
+            url: '@Url.Action("GetList", "AppDept")',
             where: {
-                CorpCode: $("#CorpCode").val(),
-                CorpName: $("#CorpName").val(),
-                Status: $('#Status input[name="radioName"]:checked ').val()
+                CorpId: $('select[name="Corp"] option:selected').val(),
+                Status: $('#Status input[name="radioName"]:checked ').val(),
+                DeptCode: $("#DeptCode").val(),
+                DeptName: $("#DeptName").val()
             }, method: "get",
             page: {
                 curr: 1
             }
         });
     }
+
     //新增
     function btnAdd() {
         layer.open({
             type: 2,
-            area: ["750px", "95%"],
-            title: "新增 - 公司",
-            content: '@Url.Action("EditCorp","Corp")' + '?status=add&Rowid='
+            area: ["850px", "95%"],
+            title: "新增 - 部门",
+            content: '@Url.Action("AppDeptEdit", "AppDept")' + '?status=add&Rowid='
         });
     }
-        //编辑
+    //编辑
     function btnEdit() {
         var checkStatus = table.checkStatus('table1');
         if (checkStatus.data.length > 0) {
@@ -174,10 +198,10 @@
             }
             layer.open({
                 type: 2,
-                area: ["750px", "95%"],
-                title: "编辑 - 公司",
-                content: '@Url.Action("EditCorp","Corp")' + '?status=update&Rowid=' + checkStatus.data[0].CorpId
-            });           
+                area: ["850px", "95%"],
+                title: "编辑 - 部门",
+                content: '@Url.Action("AppDeptEdit", "AppDept")' + '?status=update&Rowid=' + checkStatus.data[0].DeptId
+            });
         } else {
             layer.msg('请先勾选数据', {
                 icon: 5
@@ -189,10 +213,10 @@
         var checkStatus = table.checkStatus('table1');
         if (checkStatus.data.length > 0) {
             var obj = [];
-            layer.confirm('即将删除该公司及该公司下的部门、岗位、人员(失效)、银行账号信息，是否删除？', { btn: ['是', '否'], icon: 3, title: '提示' }, function (index) {
+            layer.confirm('即将删除该部门及该部门下的岗位、人员(失效)，是否删除？', { btn: ['是', '否'], icon: 3, title: '提示' }, function (index) {
                 for (var i = 0; i < checkStatus.data.length; i++) {
                     if (checkStatus.data[i].Status == "编辑") {
-                        obj.push(checkStatus.data[i].CorpId);
+                        obj.push(checkStatus.data[i].DeptId);
                     }
                 }
                 if (obj.length > 0) {
@@ -200,7 +224,7 @@
                         type: 'post',
                         dataType: 'json',
                         traditional: true,
-                        url: '@Url.Action("Delete", "Corp")',
+                        url: '@Url.Action("Delete", "AppDept")',
                         data: {
                             id: obj
                         },
@@ -236,7 +260,7 @@
             layer.confirm('是否启用？', { btn: ['是', '否'], icon: 3, title: '提示' }, function (index) {
                 for (var i = 0; i < checkStatus.data.length; i++) {
                     if (checkStatus.data[i].Status == "编辑" || checkStatus.data[i].Status == "失效") {
-                        obj.push(checkStatus.data[i].CorpId);
+                        obj.push(checkStatus.data[i].DeptId);
                     }
                 }
                 if (obj.length > 0) {
@@ -244,7 +268,7 @@
                         type: 'post',
                         dataType: 'json',
                         traditional: true,
-                        url: '@Url.Action("EnableStatusForCorp", "Corp")',
+                        url: '@Url.Action("EnableStatus", "AppDept")',
                         data: {
                             id: obj
                         },
@@ -272,6 +296,7 @@
             });
         }
     }
+
     //失效
     function btnFailure() {
         var checkStatus = table.checkStatus('table1');
@@ -280,7 +305,7 @@
             layer.confirm('是否失效？', { btn: ['是', '否'], icon: 3, title: '提示' }, function (index) {
                 for (var i = 0; i < checkStatus.data.length; i++) {
                     if (checkStatus.data[i].Status == "编辑" || checkStatus.data[i].Status == "有效") {
-                        obj.push(checkStatus.data[i].CorpId);
+                        obj.push(checkStatus.data[i].DeptId);
                     }
                 }
                 if (obj.length > 0) {
@@ -288,7 +313,7 @@
                         type: 'post',
                         dataType: 'json',
                         traditional: true,
-                        url: '@Url.Action("FailureStatusForCorp", "Corp")',
+                        url: '@Url.Action("FailureStatus", "AppDept")',
                         data: {
                             id: obj
                         },
@@ -316,7 +341,6 @@
             });
         }
     }
-
     //恢复编辑
     function btnReset() {
         var checkStatus = table.checkStatus('table1');
@@ -325,7 +349,7 @@
             layer.confirm('是否恢复编辑状态？', { btn: ['是', '否'], icon: 3, title: '提示' }, function (index) {
                 for (var i = 0; i < checkStatus.data.length; i++) {
                     if (checkStatus.data[i].Status == "有效" || checkStatus.data[i].Status == "失效") {
-                        obj.push(checkStatus.data[i].CorpId);
+                        obj.push(checkStatus.data[i].DeptId);
                     }
                 }
                 if (obj.length > 0) {
@@ -333,7 +357,7 @@
                         type: 'post',
                         dataType: 'json',
                         traditional: true,
-                        url: '@Url.Action("ResetStatusForCorp", "Corp")',
+                        url: '@Url.Action("ResetStatus", "AppDept")',
                         data: {
                             id: obj
                         },
@@ -361,39 +385,45 @@
             });
         }
     }
-        //导出
+
+    //导出
     function btnExport() {
         var _form = document.createElement("form");
         document.body.appendChild(_form);
-        _form.action = '@Url.Action("Export", "Corp")';
+        _form.action = '@Url.Action("Export", "AppCorpBank")';
         _form.data = '';
         _form.method = 'post';
         var _input = document.createElement("input");
-        _input.setAttribute("name", "CorpName");
+        _input.setAttribute("name", "CorpId");
         _input.setAttribute("type", "hidden");
-        _input.setAttribute("value", $("#CorpName").val());
+        _input.setAttribute("value", $('select[name="Corp"] option:selected').val());
         var _input2 = document.createElement("input");
-        _input2.setAttribute("name", "status");
+        _input2.setAttribute("name", "Status");
         _input2.setAttribute("type", "hidden");
         _input2.setAttribute("value", $('#Status input[name="radioName"]:checked ').val());
         var _input3 = document.createElement("input");
-        _input.setAttribute("name", "CorpCode");
-        _input.setAttribute("type", "hidden");
-        _input.setAttribute("value", $("#CorpCode").val());
+        _input3.setAttribute("name", "DeptCode");
+        _input3.setAttribute("type", "hidden");
+        _input3.setAttribute("value", $('#DeptCode').val());
+        var _input4 = document.createElement("input");
+        _input4.setAttribute("name", "DeptName");
+        _input4.setAttribute("type", "hidden");
+        _input4.setAttribute("value", $('#DeptName').val());
         _form.appendChild(_input);
         _form.appendChild(_input2);
         _form.appendChild(_input3);
+        _form.appendChild(_input4);
         _form.submit();
     }
 
     function btnImport() {
         var reg = new RegExp('/', "g");//g,表示全部替换。
-        var uploadUrl = '@Url.Action("Import","Corp")';
+        var uploadUrl = '@Url.Action("Import","AppDept")';
         layer.open({
             type: 2,
             area: ['650px', '450px'],
             title: 'Excel - 导入',
-            content: '@Url.Action("ExcelImport", "Public")' + '?UploadUrl=' + uploadUrl.replace(reg, "{xg}") + '&ExcelTempUrl=公司数据导入模板.xls'
+            content: '@Url.Action("ExcelImport", "Public")' + '?UploadUrl=' + uploadUrl.replace(reg, "{xg}") + '&ExcelTempUrl=部门导入模板.xls'
         });
     }
 </script>

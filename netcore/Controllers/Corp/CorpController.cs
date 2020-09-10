@@ -350,6 +350,21 @@ namespace netcore.Controllers.Base.Corp
                                 context.AppDepts.RemoveRange(list2);
                                 context.SaveChanges();
                             }
+                            var list4 = await context.AppUsers.Where(u=>u.CorpId==id[i]).ToListAsync();
+                            if (list4.Count>0)
+                            {
+                                for (int k = 0; k < list4.Count; k++)
+                                {
+                                    list4[i].CorpId = -999;
+                                    list4[i].DeptId = -999;
+                                    list4[i].PostId = -999;
+                                    list4[i].Status = "失效";
+                                    list4[4].LastModifiedDate = DateTime.Now;
+                                    list4[i].LastModifiedUser = HttpContext.Session.GetInt32("user_id");
+                                    context.AppUsers.Update(list4[i]);
+                                    context.SaveChanges();
+                                }
+                            }
                         }
                     }
                     await tran.CommitAsync();
