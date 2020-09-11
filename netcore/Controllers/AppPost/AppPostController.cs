@@ -51,28 +51,25 @@ namespace netcore.Controllers.AppPost
             try
             {
                 var list = await (from p in context.AppPosts
-                                   join p1 in context.AppPosts
-                                  on p.ParentPostId equals p1.PostId
-                                  into re from ps in re.DefaultIfEmpty()
-                                   //此处需要左连接
-                                  join d in context.AppDepts
-                                  on ps.DeptId equals d.DeptId
-                                  join c in context.AppCorps
-                                  on d.CorpId equals c.CorpId
-                                  select new
-                                  {
-                                      p.PostId,
-                                      p.ParentPostId,
-                                      ParentPostName = ps.PostName,
-                                      p.PostCode,
-                                      p.PostName,
-                                      p.Note,
-                                      p.Status,
-                                      p.DeptId,
-                                      d.DeptName,
-                                      d.CorpId,
-                                      c.CorpName
-                                  }
+                                             join ps in context.AppPosts on new { parent_post_id = (int)p.ParentPostId } equals new { parent_post_id = ps.PostId } into ps_join
+                                             from ps in ps_join.DefaultIfEmpty()
+                                             join d in context.AppDepts on new { dept_id = (int)p.DeptId } equals new { dept_id = d.DeptId }
+                                             join c in context.AppCorps on new { corp_id = (int)d.CorpId } equals new { corp_id = c.CorpId }
+                                             select new
+                                             {
+                                                 p.PostId,
+                                                 ParentPostId = (int?)p.ParentPostId,
+                                                 ParentPostName = ps.PostName,
+                                                 ParentPostCode = ps.PostCode,
+                                                 p.PostCode,
+                                                 p.PostName,
+                                                 p.Note,
+                                                 p.Status,
+                                                 DeptId = (int?)p.DeptId,
+                                                 d.DeptName,
+                                                 CorpId = (int?)d.CorpId,
+                                                 c.CorpName
+                                             }
                                   ).ToListAsync();
                 decimal count = 0;
                 if (list.Count > 0)
@@ -518,28 +515,26 @@ namespace netcore.Controllers.AppPost
             try
             {
                 var list = await (from p in context.AppPosts
-                                  join p1 in context.AppPosts
-                                  on p.ParentPostId equals p1.PostId
-                                  join d in context.AppDepts
-                                  on p.DeptId equals d.DeptId
-                                  join c in context.AppCorps
-                                  on d.CorpId equals c.CorpId
+                                  join ps in context.AppPosts on new { parent_post_id = (int)p.ParentPostId } equals new { parent_post_id = ps.PostId } into ps_join
+                                  from ps in ps_join.DefaultIfEmpty()
+                                  join d in context.AppDepts on new { dept_id = (int)p.DeptId } equals new { dept_id = d.DeptId }
+                                  join c in context.AppCorps on new { corp_id = (int)d.CorpId } equals new { corp_id = c.CorpId }
                                   select new
                                   {
                                       p.PostId,
-                                      p.ParentPostId,
-                                      ParentPostCode=p1.PostCode,
-                                      ParentPostName = p1.PostName,
+                                      ParentPostId = (int?)p.ParentPostId,
+                                      ParentPostName = ps.PostName,
+                                      ParentPostCode=ps.PostCode,
                                       p.PostCode,
                                       p.PostName,
                                       p.Note,
                                       p.Status,
-                                      p.DeptId,
+                                      DeptId = (int?)p.DeptId,
                                       d.DeptName,
-                                      d.CorpId,
+                                      CorpId = (int?)d.CorpId,
                                       c.CorpName
                                   }
-                              ).ToListAsync();
+                                  ).ToListAsync();
                 if (list.Count > 0)
                 {
                     //优先使用部门查询
@@ -577,7 +572,7 @@ namespace netcore.Controllers.AppPost
                     DeptName = u.DeptName,
                     PostCode = u.PostCode,
                     PostName = u.PostName,
-                    ParentPostCode = u.ParentPostCode,
+                    ParentPostCode = u.PostCode,
                     ParentPostName = u.ParentPostName,
                     Note = u.Note,
                     Status = u.Status

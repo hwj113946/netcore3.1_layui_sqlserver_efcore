@@ -66,9 +66,14 @@
             url: '@Url.Action("GetCorp", "Public")',
             success: function (res) {
                 if (res.code == 0) {
+                    var CorpId = "";
                     $.each(res.data, function (index, item) {
+                        if (index == 0) {
+                            CorpId = item.CorpId;
+                        }
                         $('#corpSelect').append('<option value="' + item.CorpId + '">' + item.CorpName + '</option>');
                     });
+                    GetDept(form, CorpId)
                     form.render('select');
                 } else {
                     layer.msg(res.msg, {
@@ -83,20 +88,31 @@
             }
         });
     }
-    function GetDept(form) {
+    function GetDept(form,value) {
         document.getElementById("deptSelect").options.length = 0;
+        var CorpId = "";
+        if (value == null || value == "" || value == undefined) {
+            CorpId = $('select[name="Corp"] option:selected').val();
+        } else {
+            CorpId = value;
+        }
         $.ajax({
             type: 'get',
             dataType: 'json',
             url: '@Url.Action("GetDept", "Public")',
             data: {
-                CorpId: $('select[name="Corp"] option:selected').val()
+                CorpId: CorpId
             },
             success: function (res) {
                 if (res.code == 0) {
+                    var DeptId = "";
                     $.each(res.data, function (index, item) {
+                        if (index == 0) {
+                            DeptId = item.DeptId;
+                        }
                         $('#deptSelect').append('<option value="' + item.DeptId + '">' + item.DeptName + '</option>');
                     });
+                    GetPost(DeptId);
                     form.render('select');
                 } else {
                     layer.msg(res.msg, {
@@ -112,12 +128,18 @@
         });
     }
 
-    function GetPost() {
+    function GetPost(value) {
+        var DeptId = "-99";
+        if (value == null || value == "" || value == undefined) {
+            DeptId = $('select[name="Dept"] option:selected').val();
+        } else {
+            DeptId = value;
+        }
         $.ajax({
             type: 'get',
             dataType: 'json',
             url: '@Url.Action("GetPostTree", "AppPost")',
-            data: { DeptId: $('select[name="Dept"] option:selected').val() },
+            data: { DeptId: DeptId },
             success: function (res) {
                 if (res.code == 0) {
                     xm = xmSelect.render({
@@ -158,11 +180,11 @@
         GetPost();
         //监听公司下拉框变更
         form.on('select(corpSelect)', function (data) {
-            GetDept(form);
+            GetDept(form, data.value);
         });
         //监听部门下拉框变更
         form.on('select(deptSelect)', function (data) {
-            GetPost();
+            GetPost(data.value);
         });
 
         //监听提交

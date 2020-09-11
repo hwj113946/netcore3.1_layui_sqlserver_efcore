@@ -219,24 +219,23 @@ namespace netcore.Controllers.Role
         [HttpGet]
         public async Task<IActionResult> GetRoleMenuTree(int RoleId)
         {
-            List<RoleMenuTree> rmt =await Task.FromResult(DbContextExtensions.SqlQuery<RoleMenuTree>(context.Database, @"SELECT t.menu_id        id,
-       t.parent_menu_id pid,
-       t.menu_type,
-       t.menu_name      title,
-       CASE
-         WHEN rm.menu_id IS NULL THEN 'false'
-         ELSE
-           CASE
-             WHEN t.menu_type = '菜单' THEN 'false'
-             ELSE 'true'
-           END
-       END              AS checked,
-       'true'           AS spread
-FROM   app_menu t
-       LEFT JOIN app_role_menu rm
-              ON t.menu_id = rm.menu_id
-                 AND rm.role_id = @RoleId
-ORDER  BY t.menu_sort ", new object[] { new SqlParameter("RoleId", RoleId) }).ToList());
+            var rmt = await (from t in context.AppMenus
+                             join rm in context.AppRoleMenus on new { t.MenuId, RoleId = (int)RoleId }
+                               equals new { rm.MenuId, rm.RoleId } into rm_join
+                             from rm in rm_join.DefaultIfEmpty()
+                             orderby
+                               t.MenuSort
+                             select new RoleMenuTree
+                             {
+                                 id = t.MenuId,
+                                 pid = t.ParentMenuId,
+                                 menu_type = t.MenuType,
+                                 title = t.MenuName,
+                                 @checked =
+                               rm.MenuId == null ? "false" : (
+                               t.MenuType == "菜单" ? "false" : "true"),
+                                 spread = "true"
+                             }).ToListAsync();
             string json = ToMenuJson(rmt, 0);
             return Json(json.ToJson().ToString().Replace("\"false\"", "false").Replace("\"true\"", "true").ToJson());
         }

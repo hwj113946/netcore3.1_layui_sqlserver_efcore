@@ -181,7 +181,7 @@
     function btnAdd() {
         layer.open({
             type: 2,
-            area: ["900px", "95%"],
+            area: ["90%", "95%"],
             title: "新增 - 部门",
             content: '@Url.Action("AppDeptEdit", "AppDept")' + '?status=add&Rowid='
         });
@@ -198,7 +198,7 @@
             }
             layer.open({
                 type: 2,
-                area: ["900px", "95%"],
+                area: ["90%", "95%"],
                 title: "编辑 - 部门",
                 content: '@Url.Action("AppDeptEdit", "AppDept")' + '?status=update&Rowid=' + checkStatus.data[0].DeptId
             });
