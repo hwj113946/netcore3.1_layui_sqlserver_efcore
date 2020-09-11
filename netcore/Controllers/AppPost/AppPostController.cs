@@ -644,140 +644,87 @@ namespace netcore.Controllers.AppPost
                                                     var corp = await context.AppCorps.SingleOrDefaultAsync(u => u.CorpName == excel[i].CorpName);
                                                     if (corp != null)
                                                     {
-                                                        var dept = await context.AppDepts.SingleOrDefaultAsync(u => u.DeptName == excel[i].DeptName);
+                                                        var dept = await context.AppDepts.SingleOrDefaultAsync(u => u.DeptName == excel[i].DeptName&&u.CorpId==corp.CorpId);
                                                         if (dept == null)
                                                         {
-                                                            returnMsg += "第" + (i + 1) + "行：该部门不存在。\r\n";
+                                                            returnMsg += "第" + (i + 1) + "行：该部门不存在或该部门不在所属公司下。\r\n";
                                                         }
                                                         else
                                                         {
-                                                            if (corp.CorpId!=dept.CorpId)
+                                                            if (!string.IsNullOrEmpty(excel[i].ParentPostCode))
                                                             {
-                                                                returnMsg += "第" + (i + 1) + "行：该部门不在所属公司下。\r\n";
-                                                            }
-                                                            else
-                                                            {
-                                                                if (!string.IsNullOrEmpty(excel[i].ParentPostCode))
-                                                                {
-                                                                    var post = await context.AppPosts.SingleOrDefaultAsync(u => u.PostCode == excel[i].ParentPostCode);
-                                                                    if (post==null)
-                                                                    {
-                                                                        if (!string.IsNullOrEmpty(excel[i].ParentPostName))
-                                                                        {
-                                                                            post=await context.AppPosts.SingleOrDefaultAsync(u => u.PostName == excel[i].ParentPostName);
-                                                                            if (post==null)
-                                                                            {
-                                                                                returnMsg += "第" + (i + 1) + "行：上级岗位不存在。\r\n";
-                                                                            }
-                                                                            else
-                                                                            {
-                                                                                if (post.DeptId!=dept.DeptId)
-                                                                                {
-                                                                                    returnMsg += "第" + (i + 1) + "行：上级岗位不在所属部门下。\r\n";
-                                                                                }
-                                                                                else
-                                                                                {
-                                                                                    var postAdd = await context.AppPosts.SingleOrDefaultAsync(u => u.PostCode == excel[i].PostCode && u.DeptId == post.DeptId);
-                                                                                    if (postAdd==null)
-                                                                                    {
-                                                                                        postAdd = await context.AppPosts.SingleOrDefaultAsync(u => u.PostName == excel[i].PostName && u.DeptId == post.DeptId);
-                                                                                        if (postAdd == null)
-                                                                                        {
-                                                                                            context.AppPosts.Add(new Models.AppPost()
-                                                                                            {
-                                                                                                ParentPostId = post.PostId,
-                                                                                                PostCode = excel[i].PostCode ?? "",
-                                                                                                PostName = excel[i].PostName ?? "",
-                                                                                                DeptId = post.DeptId,
-                                                                                                Note = excel[i].Note ?? "",
-                                                                                                Status = excel[i].Status ?? "",
-                                                                                                CreationDate = DateTime.Now,
-                                                                                                CreationUser = HttpContext.Session.GetInt32("user_id")
-                                                                                            });
-                                                                                            await context.SaveChangesAsync();
-                                                                                            returnMsg += "第" + (i + 1) + "行【" + excel[i].PostCode + "】" + excel[i].PostName + "：执行成功。\r\n";
-                                                                                        }
-                                                                                        else
-                                                                                        {
-                                                                                            returnMsg += "第" + (i + 1) + "行：该岗位名称在所属部门下已经存在。\r\n";
-                                                                                        }
-                                                                                    }
-                                                                                    else
-                                                                                    {
-                                                                                        returnMsg += "第" + (i + 1) + "行：该岗位代码在所属部门下已经存在。\r\n";
-                                                                                    }
-                                                                                }
-                                                                            }
-                                                                        }
-                                                                        else
-                                                                        {
-                                                                            returnMsg += "第" + (i + 1) + "行：上级岗位不存在。\r\n";
-                                                                        }
-                                                                    }
-                                                                }
-                                                                else
+                                                                var post = await context.AppPosts.SingleOrDefaultAsync(u => u.PostCode == excel[i].ParentPostCode&&u.DeptId==dept.DeptId);
+                                                                if (post == null)
                                                                 {
                                                                     if (!string.IsNullOrEmpty(excel[i].ParentPostName))
                                                                     {
-                                                                        var post = await context.AppPosts.SingleOrDefaultAsync(u => u.PostName == excel[i].ParentPostName);
+                                                                        post = await context.AppPosts.SingleOrDefaultAsync(u => u.PostName == excel[i].ParentPostName && u.DeptId == dept.DeptId);
                                                                         if (post == null)
                                                                         {
-                                                                            returnMsg += "第" + (i + 1) + "行：上级岗位不存在。\r\n";
+                                                                            returnMsg += "第" + (i + 1) + "行：上级岗位不存在或上级岗位不在所属部门下。\r\n";
                                                                         }
                                                                         else
                                                                         {
-                                                                            if (post.DeptId != dept.DeptId)
+                                                                            var postAdd = await context.AppPosts.SingleOrDefaultAsync(u => u.PostCode == excel[i].PostCode && u.DeptId == post.DeptId);
+                                                                            if (postAdd == null)
                                                                             {
-                                                                                returnMsg += "第" + (i + 1) + "行：上级岗位不在所属部门下。\r\n";
-                                                                            }
-                                                                            else
-                                                                            {
-                                                                                var postAdd = await context.AppPosts.SingleOrDefaultAsync(u => u.PostCode == excel[i].PostCode && u.DeptId == post.DeptId);
+                                                                                postAdd = await context.AppPosts.SingleOrDefaultAsync(u => u.PostName == excel[i].PostName && u.DeptId == post.DeptId);
                                                                                 if (postAdd == null)
                                                                                 {
-                                                                                    postAdd = await context.AppPosts.SingleOrDefaultAsync(u => u.PostName == excel[i].PostName && u.DeptId == post.DeptId);
-                                                                                    if (postAdd == null)
+                                                                                    context.AppPosts.Add(new Models.AppPost()
                                                                                     {
-                                                                                        context.AppPosts.Add(new Models.AppPost()
-                                                                                        {
-                                                                                            ParentPostId = post.PostId,
-                                                                                            PostCode = excel[i].PostCode ?? "",
-                                                                                            PostName = excel[i].PostName ?? "",
-                                                                                            DeptId = post.DeptId,
-                                                                                            Note = excel[i].Note ?? "",
-                                                                                            Status = excel[i].Status ?? "",
-                                                                                            CreationDate = DateTime.Now,
-                                                                                            CreationUser = HttpContext.Session.GetInt32("user_id")
-                                                                                        });
-                                                                                        await context.SaveChangesAsync();
-                                                                                        returnMsg += "第" + (i + 1) + "行【" + excel[i].PostCode + "】" + excel[i].PostName + "：执行成功。\r\n";
-                                                                                    }
-                                                                                    else
-                                                                                    {
-                                                                                        returnMsg += "第" + (i + 1) + "行：该岗位名称在所属部门下已经存在。\r\n";
-                                                                                    }
+                                                                                        ParentPostId = post.PostId,
+                                                                                        PostCode = excel[i].PostCode ?? "",
+                                                                                        PostName = excel[i].PostName ?? "",
+                                                                                        DeptId = post.DeptId,
+                                                                                        Note = excel[i].Note ?? "",
+                                                                                        Status = excel[i].Status ?? "",
+                                                                                        CreationDate = DateTime.Now,
+                                                                                        CreationUser = HttpContext.Session.GetInt32("user_id")
+                                                                                    });
+                                                                                    await context.SaveChangesAsync();
+                                                                                    returnMsg += "第" + (i + 1) + "行【" + excel[i].PostCode + "】" + excel[i].PostName + "：执行成功。\r\n";
                                                                                 }
                                                                                 else
                                                                                 {
-                                                                                    returnMsg += "第" + (i + 1) + "行：该岗位代码在所属部门下已经存在。\r\n";
+                                                                                    returnMsg += "第" + (i + 1) + "行：该岗位名称在所属部门下已经存在。\r\n";
                                                                                 }
+                                                                            }
+                                                                            else
+                                                                            {
+                                                                                returnMsg += "第" + (i + 1) + "行：该岗位代码在所属部门下已经存在。\r\n";
                                                                             }
                                                                         }
                                                                     }
                                                                     else
                                                                     {
-                                                                        var postAdd = await context.AppPosts.SingleOrDefaultAsync(u => u.PostCode == excel[i].PostCode && u.DeptId == dept.DeptId);
+                                                                        returnMsg += "第" + (i + 1) + "行：上级岗位不存在。\r\n";
+                                                                    }
+                                                                }
+                                                            }
+                                                            else
+                                                            {
+                                                                if (!string.IsNullOrEmpty(excel[i].ParentPostName))
+                                                                {
+                                                                    var post = await context.AppPosts.SingleOrDefaultAsync(u => u.PostName == excel[i].ParentPostName&&u.DeptId==dept.DeptId);
+                                                                    if (post == null)
+                                                                    {
+                                                                        returnMsg += "第" + (i + 1) + "行：上级岗位不存在或上级岗位不在所属部门下。\r\n";
+                                                                    }
+                                                                    else
+                                                                    {
+                                                                        var postAdd = await context.AppPosts.SingleOrDefaultAsync(u => u.PostCode == excel[i].PostCode && u.DeptId == post.DeptId);
                                                                         if (postAdd == null)
                                                                         {
-                                                                            postAdd = await context.AppPosts.SingleOrDefaultAsync(u => u.PostName == excel[i].PostName && u.DeptId == dept.DeptId);
+                                                                            postAdd = await context.AppPosts.SingleOrDefaultAsync(u => u.PostName == excel[i].PostName && u.DeptId == post.DeptId);
                                                                             if (postAdd == null)
                                                                             {
                                                                                 context.AppPosts.Add(new Models.AppPost()
                                                                                 {
-                                                                                    ParentPostId = 0,
+                                                                                    ParentPostId = post.PostId,
                                                                                     PostCode = excel[i].PostCode ?? "",
                                                                                     PostName = excel[i].PostName ?? "",
-                                                                                    DeptId = dept.DeptId,
+                                                                                    DeptId = post.DeptId,
                                                                                     Note = excel[i].Note ?? "",
                                                                                     Status = excel[i].Status ?? "",
                                                                                     CreationDate = DateTime.Now,
@@ -795,6 +742,38 @@ namespace netcore.Controllers.AppPost
                                                                         {
                                                                             returnMsg += "第" + (i + 1) + "行：该岗位代码在所属部门下已经存在。\r\n";
                                                                         }
+                                                                    }
+                                                                }
+                                                                else
+                                                                {
+                                                                    var postAdd = await context.AppPosts.SingleOrDefaultAsync(u => u.PostCode == excel[i].PostCode && u.DeptId == dept.DeptId);
+                                                                    if (postAdd == null)
+                                                                    {
+                                                                        postAdd = await context.AppPosts.SingleOrDefaultAsync(u => u.PostName == excel[i].PostName && u.DeptId == dept.DeptId);
+                                                                        if (postAdd == null)
+                                                                        {
+                                                                            context.AppPosts.Add(new Models.AppPost()
+                                                                            {
+                                                                                ParentPostId = 0,
+                                                                                PostCode = excel[i].PostCode ?? "",
+                                                                                PostName = excel[i].PostName ?? "",
+                                                                                DeptId = dept.DeptId,
+                                                                                Note = excel[i].Note ?? "",
+                                                                                Status = excel[i].Status ?? "",
+                                                                                CreationDate = DateTime.Now,
+                                                                                CreationUser = HttpContext.Session.GetInt32("user_id")
+                                                                            });
+                                                                            await context.SaveChangesAsync();
+                                                                            returnMsg += "第" + (i + 1) + "行【" + excel[i].PostCode + "】" + excel[i].PostName + "：执行成功。\r\n";
+                                                                        }
+                                                                        else
+                                                                        {
+                                                                            returnMsg += "第" + (i + 1) + "行：该岗位名称在所属部门下已经存在。\r\n";
+                                                                        }
+                                                                    }
+                                                                    else
+                                                                    {
+                                                                        returnMsg += "第" + (i + 1) + "行：该岗位代码在所属部门下已经存在。\r\n";
                                                                     }
                                                                 }
                                                             }

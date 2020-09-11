@@ -23,21 +23,33 @@
     </div>
     <div class="layui-form-item">
         <div class="layui-inline">
-            <label class="layui-form-label"><span style="color:red;">*</span>岗位代码</label>
+            <label class="layui-form-label"><span style="color:red;">*</span>所属岗位</label>
             <div class="layui-input-inline">
-                <input type="text" class="layui-input" lay-verify="required" id="PostCode" placeholder="请输入岗位代码">
+                <div id="xm" class="xm-select-demo"></div>
             </div>
-            <label class="layui-form-label"><span style="color:red;">*</span>岗位名称</label>
+            <label class="layui-form-label"><span style="color:red;">*</span>账户</label>
             <div class="layui-input-inline">
-                <input type="text" class="layui-input" id="PostName" lay-verify="required" placeholder="请输入岗位名称">
+                <input type="text" class="layui-input" lay-verify="required" id="UserCode" placeholder="请输入账户">
             </div>
         </div>
     </div>
     <div class="layui-form-item">
         <div class="layui-inline">
-            <label class="layui-form-label"><span style="color:red;">*</span>上级岗位</label>
+            <label class="layui-form-label"><span style="color:red;">*</span>姓名</label>
             <div class="layui-input-inline">
-                <div id="xm" class="xm-select-demo"></div>
+                <input type="text" class="layui-input" id="UserName" lay-verify="required" placeholder="请输入姓名">
+            </div>
+            <label class="layui-form-label"><span style="color:red;">*</span>联系电话</label>
+            <div class="layui-input-inline">
+                <input type="text" class="layui-input" lay-verify="required" id="Phone" placeholder="请输入联系电话">
+            </div>
+        </div>
+    </div>
+    <div class="layui-form-item">
+        <div class="layui-inline">
+            <label class="layui-form-label">Email</label>
+            <div class="layui-input-inline">
+                <input type="text" class="layui-input" id="Email" lay-verify="" placeholder="请输入Email">
             </div>
             <label class="layui-form-label"></label>
             <div class="layui-input-inline">
@@ -45,9 +57,9 @@
         </div>
     </div>
     <div class="layui-form-item layui-form-text">
-        <label class="layui-form-label">备注</label>
+        <label class="layui-form-label">地址</label>
         <div class="layui-input-block">
-            <textarea class="layui-textarea" id="Note" placeholder="备注"></textarea>
+            <textarea class="layui-textarea" id="Address" placeholder="地址"></textarea>
         </div>
     </div>
     <div class="layui-form-item">
@@ -58,6 +70,7 @@
         </div>
     </div>
 </form>
+
 <script>
     function GetCorp(form) {
         $.ajax({
@@ -88,6 +101,7 @@
             }
         });
     }
+
     function GetDept(form,value) {
         document.getElementById("deptSelect").options.length = 0;
         var CorpId = "";
@@ -115,7 +129,7 @@
                     if (form != undefined) {
                         form.render('select');
                         GetPost(DeptId, null);
-                    }      
+                    }                    
                 } else {
                     layer.msg(res.msg, {
                         icon: 5
@@ -130,7 +144,7 @@
         });
     }
 
-    function GetPost(value, cValue) {
+    function GetPost(value,cValue) {
         var DeptId = "-99";
         if (value == null || value == "" || value == undefined) {
             DeptId = $('select[name="Dept"] option:selected').val();
@@ -173,7 +187,7 @@
                     } else {
                         if (DeptId == null || DeptId == "" || DeptId == undefined) {
                             GetDept(form, $('select[name="Dept"] option:selected').val());
-                        }     
+                        }                        
                     }
                 } else {
                     layer.msg(res.msg, { icon: 5 });
@@ -185,7 +199,7 @@
     }
 
     var form, layer, xm;
-    layui.use(["layer", "form"], function () {
+    layui.use(["layer", "form", 'jquery'], function () {
         layer = layui.layer, form = layui.form;
         form.render();
         GetCorp(form);
@@ -202,26 +216,39 @@
 
         //监听提交
         form.on("submit(btnCommit)", function (data) {
-            var PostCode = $("#PostCode").val();
-            var PostName = $("#PostName").val();
+            var UserCode = $("#UserCode").val();
+            var UserName = $("#UserName").val();
+            var Phone = $("#Phone").val();
+            var Email = $("#Email").val();
+            var Address = $("#Address").val();
+            var CorpId = $('select[name="Corp"] option:selected').val();
             var DeptId = $('select[name="Dept"] option:selected').val();
-            var ParentPostId = xm.getValue('valueStr');
+            var PostId = xm.getValue('valueStr');
             var status = '@ViewBag.status';
-            var url = status == "add" ? '@Url.Action("Insert","AppPost")' : '@Url.Action("Modify", "AppPost")';
+            var url = status == "add" ? '@Url.Action("Insert","AppUser")' : '@Url.Action("Modify", "AppUser")';
             var data = status == "add" ?
                 {
-                    PostCode: PostCode,
-                    PostName: PostName,
+
+                    UserCode: UserCode,
+                    UserName: UserName,
+                    Phone: Phone,
+                    Email: Email,
+                    Address: Address,
+                    CorpId: CorpId,
                     DeptId: DeptId,
-                    ParentPostId: ParentPostId
+                    PostId: PostId
                 }
                 :
                 {
-                    PostCode: PostCode,
-                    PostName: PostName,
+                    UserCode: UserCode,
+                    UserName: UserName,
+                    Phone: Phone,
+                    Email: Email,
+                    Address: Address,
+                    CorpId: CorpId,
                     DeptId: DeptId,
-                    PostId: '@ViewBag.PostId',
-                    ParentPostId: ParentPostId
+                    PostId: PostId,
+                    UserId:'@ViewBag.UserId'
                 };
             $.ajax({
                 type: 'post',
@@ -263,16 +290,19 @@
             $.ajax({
                 type: 'get',
                 dataType: 'json',
-                url: '@Url.Action("GetById", "AppPost")',
-                data: { PostId: '@ViewBag.PostId' },
+                url: '@Url.Action("GetById", "AppUser")',
+                data: { UserId: '@ViewBag.UserId' },
                 success: function (res) {
-                    if (res.code == "0") {
-                        $("#PostCode").val(res.data.PostCode);
-                        $("#PostName").val(res.data.PostName);
+                    if (res.code == 0) {
+                        $("#UserCode").val(res.data.UserCode);
+                        $("#UserName").val(res.data.UserName);
+                        $("#Phone").val(res.data.Phone);
+                        $("#Email").val(res.data.Email);
+                        $("#Address").val(res.data.Address);
                         $("#corpSelect option[value='" + res.data.CorpId + "']").prop("selected", true);
                         $("#deptSelect option[value='" + res.data.DeptId + "']").prop("selected", true);
-                        GetPost(res.DeptId, res.data.ParentPostId);
-                        //xm.setValue([res.data.ParentPostId]);
+                        GetPost(res.data.DeptId, res.data.PostId);
+                        //xm.setValue([res.data.PostId]);
                         form.render('select');
                     }
                 }, error: function (res) {
@@ -280,6 +310,5 @@
                 }
             });
         }, 300);
-
     });
 </script>

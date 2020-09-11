@@ -11,6 +11,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="Views\AppUser\AppUserEdit.cshtml~RF16d064a.TMP" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="FastReport.Compat" Version="2020.3.7" />
     <PackageReference Include="FastReport.OpenSource.Web" Version="2020.3.22" />
     <PackageReference Include="IdentityModel" Version="4.3.1" />

@@ -1,0 +1,537 @@
+﻿@{
+    Layout = null;
+}
+
+<script src="~/js/jquery-3.2.1.min.js"></script>
+<script src="~/layui/layui.js"></script>
+<link href="~/layui/css/layui.css" rel="stylesheet" />
+<script type="text/html" id="toolbar">
+    <div class="layui-btn-container">
+        <a class="layui-btn layui-btn-sm layui-btn-primary" onclick="Refresh()">查询</a>
+        <a class="layui-btn layui-btn-sm layui-btn-primary" onclick="btnAdd()">新增</a>
+        <a id="btnEdit" class="layui-btn layui-btn-sm layui-btn-primary" onclick="btnEdit()">编辑</a>
+        <a id="btnDelete" class="layui-btn layui-btn-sm layui-btn-primary" onclick="btnDel()">删除</a>
+        <a id="btnRelease" class="layui-btn layui-btn-sm layui-btn-primary" onclick="btnEnable()">生效</a>
+        <a id="btnCancel" class="layui-btn layui-btn-sm layui-btn-primary" onclick="btnFailure()">失效</a>
+        <a id="btnReset" class="layui-btn layui-btn-sm layui-btn-primary" onclick="btnReset()">恢复编辑</a>
+        <a id="btnExport" class="layui-btn layui-btn-sm layui-btn-primary" onclick="btnExport()">导出</a>
+        <a id="btnImport" class="layui-btn layui-btn-sm layui-btn-primary" onclick="btnImport()">导入</a>
+        <a id="btnImport" class="layui-btn layui-btn-sm layui-btn-primary" onclick="btnResetPassword()">重置密码</a>
+        <a id="btnImport" class="layui-btn layui-btn-sm layui-btn-primary" onclick="btnAllotRole()">分配角色</a>
+    </div>
+</script>
+<form class="layui-form">
+    <br />
+    <div class="layui-inline"></div>
+    <div class="layui-inline">
+        <div class="layui-input-inline">
+            <select name="Corp" id="corpSelect" lay-verify="" lay-filter="corpSelect" lay-search></select>
+        </div>
+        <div class="layui-input-inline">
+            <select name="Dept" id="deptSelect" lay-verify="" lay-filter="deptSelect" lay-search></select>
+        </div>
+        <div class="layui-input-inline">
+            <input type="text" class="layui-input" id="UserCode" placeholder="用户账号">
+        </div>
+        <div class="layui-input-inline">
+            <input type="text" class="layui-input" id="UserName" placeholder="姓名">
+        </div>
+        <div class="layui-input-inline" id="Status">
+            <input type="radio" name="radioName" value="全部" lay-filter="radio" title="全部" checked="" class="">
+            <input type="radio" name="radioName" value="编辑" lay-filter="radio" title="编辑" class="">
+            <input type="radio" name="radioName" value="有效" lay-filter="radio" title="有效" class="">
+            <input type="radio" name="radioName" value="失效" lay-filter="radio" title="失效" class="">
+        </div>
+    </div>
+    <table id="table1" lay-filter="table1"></table>
+</form>
+<script>
+    function GetCorp(form) {
+        $.ajax({
+            type: 'get',
+            dataType: 'json',
+            url: '@Url.Action("GetCorp", "Public")',
+            success: function (res) {
+                if (res.code == 0) {
+                    $('#corpSelect').append('<option value="-99">全部</option>');
+                    $.each(res.data, function (index, item) {
+                        $('#corpSelect').append('<option value="' + item.CorpId + '">' + item.CorpName + '</option>');
+                    });
+                    $("#corpSelect").val('-99');
+                    form.render('select');
+                } else {
+                    layer.msg(res.msg, {
+                        icon: 5
+                    });
+                }
+            },
+            error: function (res) {
+                layer.msg("加载公司信息出错，请联系管理员", {
+                    icon: 5
+                });
+            }
+        });
+    }
+
+    function GetDept(form) {
+        document.getElementById("deptSelect").options.length = 0;
+        $.ajax({
+            type: 'get',
+            dataType: 'json',
+            url: '@Url.Action("GetDept", "Public")',
+            data: {
+                CorpId: $('select[name="Corp"] option:selected').val()
+            },
+            success: function (res) {
+                if (res.code == 0) {
+                    $('#deptSelect').append('<option value="-99">全部</option>');
+                    $.each(res.data, function (index, item) {
+                        $('#deptSelect').append('<option value="' + item.DeptId + '">' + item.DeptName + '</option>');
+                    });
+                    $("#deptSelect").val('-99');
+                    form.render('select');
+                } else {
+                    layer.msg(res.msg, {
+                        icon: 5
+                    });
+                }
+            },
+            error: function (res) {
+                layer.msg("加载部门信息出错，请联系管理员", {
+                    icon: 5
+                });
+            }
+        });
+    }
+
+    var table, ins, layer, form, upload, files;
+    layui.use(['table', 'form', 'upload'], function () {
+        table = layui.table, layer = layui.layer, form = layui.form, upload = layui.upload;
+        form.render();
+        GetCorp(form);
+        GetDept(form);
+        ins = table.render({
+            elem: '#table1',
+            toolbar: '#toolbar'
+            , defaultToolbar: ['filter']
+            , cellMinWidth: 120
+            , height: document.documentElement.clientHeight - 80
+            , url: '@Url.Action("GetList", "AppUser")',
+            where: {
+                CorpId: '-99',
+                DeptId: '-99',
+                Status: '全部',
+                UserCode: '',
+                UserName: ''
+            }, method: 'get'
+            , page: true //开启分页
+            , limit: 20
+            , limits: [20, 50, 100]
+            , cols: [[ //表头
+                { type: 'checkbox', fixed: 'left' }
+                , { field: 'UserId', title: '用户ID', hide: true }
+                , { field: 'CorpName', title: '所属公司', sort: true }
+                , { field: 'DeptName', title: '所属部门', sort: true }
+                , { field: 'PostName', title: '所属岗位名称', sort: true }
+                , { field: 'UserCode', title: '用户账号', sort: true }
+                , { field: 'UserName', title: '姓名', sort: true }
+                , { field: 'Phone', title: '联系电话', sort: true }
+                , { field: 'Email', title: 'Email', sort: true }
+                , { field: 'Address', title: '联系地址', hide: true }
+                , { field: 'ModifyPasswordDate', title: '最后修改密码时间', sort: true }
+                , { field: 'Status', title: '状态', sort: true }
+            ]], loading: true,
+            done: function () {
+                var val = $('#Status input[name="radioName"]:checked ').val();
+                if (val == "全部") {
+                    $("#btnEdit").css({ "display": "" });
+                    $("#btnDelete").css({ "display": "" });
+                    $("#btnRelease").css({ "display": "" });
+                    $("#btnCancel").css({ "display": "" });
+                    $("#btnReset").css({ "display": "" });
+                } else if (val == "编辑") {
+                    $("#btnEdit").css({ "display": "" });
+                    $("#btnDelete").css({ "display": "" });
+                    $("#btnRelease").css({ "display": "" });
+                    $("#btnCancel").css({ "display": "none" });
+                    $("#btnReset").css({ "display": "none" });
+                }
+                else if (val == "有效") {
+                    $("#btnEdit").css({ "display": "none" });
+                    $("#btnDelete").css({ "display": "none" });
+                    $("#btnRelease").css({ "display": "none" });
+                    $("#btnCancel").css({ "display": "" });
+                    $("#btnReset").css({ "display": "" });
+                }
+                else if (val == "失效") {
+                    $("#btnEdit").css({ "display": "none" });
+                    $("#btnDelete").css({ "display": "none" });
+                    $("#btnRelease").css({ "display": "" });
+                    $("#btnCancel").css({ "display": "none" });
+                    $("#btnReset").css({ "display": "" });
+                }
+            }
+        });
+        //监听单选框变更
+        form.on('radio(radio)', function (data) {
+            if (data.value == "全部") {
+                $("#btnEdit").css({ "display": "" });
+                $("#btnDelete").css({ "display": "" });
+                $("#btnRelease").css({ "display": "" });
+                $("#btnCancel").css({ "display": "" });
+                $("#btnReset").css({ "display": "" });
+            } else if (data.value == "编辑") {
+                $("#btnEdit").css({ "display": "" });
+                $("#btnDelete").css({ "display": "" });
+                $("#btnRelease").css({ "display": "" });
+                $("#btnCancel").css({ "display": "none" });
+                $("#btnReset").css({ "display": "none" });
+            }
+            else if (data.value == "有效") {
+                $("#btnEdit").css({ "display": "none" });
+                $("#btnDelete").css({ "display": "none" });
+                $("#btnRelease").css({ "display": "none" });
+                $("#btnCancel").css({ "display": "" });
+                $("#btnReset").css({ "display": "" });
+            }
+            else if (data.value == "失效") {
+                $("#btnEdit").css({ "display": "none" });
+                $("#btnDelete").css({ "display": "none" });
+                $("#btnRelease").css({ "display": "" });
+                $("#btnCancel").css({ "display": "none" });
+                $("#btnReset").css({ "display": "" });
+            }
+            Refresh();
+        });
+        //监听公司下拉框变更
+        form.on('select(corpSelect)', function (data) {
+            GetDept(form);
+        });
+    });
+    function Refresh() {
+        table.reload("table1", {
+            url: '@Url.Action("GetList", "AppUser")',
+            where: {
+                CorpId: $('select[name="Corp"] option:selected').val(),
+                DeptId: $('select[name="Dept"] option:selected').val(),
+                Status: $('#Status input[name="radioName"]:checked ').val(),
+                UserCode: $("#UserCode").val(),
+                UserName: $("#UserName").val()
+            }, method: "get",
+            page: {
+                curr: 1
+            }
+        });
+    }
+
+    //新增
+    function btnAdd() {
+        layer.open({
+            type: 2,
+            area: ["750px", "95%"],
+            title: "新增 - 用户",
+            content: '@Url.Action("AppUserEdit", "AppUser")' + '?status=add&Rowid='
+        });
+    }
+    //编辑
+    function btnEdit() {
+        var checkStatus = table.checkStatus('table1');
+        if (checkStatus.data.length > 0) {
+            if (checkStatus.data.length > 1) {
+                layer.msg("编辑只能勾选一行数据", { icon: 5 }); return;
+            }
+            if (checkStatus.data[0].Status != "编辑") {
+                layer.msg("不在编辑状态", { icon: 5 }); return;
+            }
+            layer.open({
+                type: 2,
+                area: ["750px", "95%"],
+                title: "编辑 - 用户",
+                content: '@Url.Action("AppUserEdit", "AppUser")' + '?status=update&Rowid=' + checkStatus.data[0].UserId
+            });
+        } else {
+            layer.msg('请先勾选数据', {
+                icon: 5
+            });
+        }
+    }
+    //删除
+    function btnDel() {
+        var checkStatus = table.checkStatus('table1');
+        if (checkStatus.data.length > 0) {
+            var obj = [];
+            layer.confirm('即将删除该用户，是否删除？', { btn: ['是', '否'], icon: 3, title: '提示' }, function (index) {
+                for (var i = 0; i < checkStatus.data.length; i++) {
+                    if (checkStatus.data[i].Status == "编辑") {
+                        obj.push(checkStatus.data[i].UserId);
+                    }
+                }
+                if (obj.length > 0) {
+                    $.ajax({
+                        type: 'post',
+                        dataType: 'json',
+                        traditional: true,
+                        url: '@Url.Action("Delete", "AppUser")',
+                        data: {
+                            id: obj
+                        },
+                        success: function (res) {
+                            if (res.code == 200) {
+                                layer.msg(res.msg, { icon: 6 });
+                                Refresh();
+                            } else {
+                                layer.msg(res.msg, { icon: 5 });
+                            }
+                        },
+                        error: function () {
+                            layer.msg("接口出错，请联系管理员", { icon: 5 });
+                        }
+                    });
+                } else {
+                    layer.msg('勾选的数据状态不在编辑状态', {
+                        icon: 5
+                    });
+                }
+            });
+        } else {
+            layer.msg('请先勾选数据', {
+                icon: 5
+            });
+        }
+    }
+
+    //启用
+    function btnEnable() {
+        var checkStatus = table.checkStatus('table1');
+        if (checkStatus.data.length > 0) {
+            var obj = [];
+            layer.confirm('是否启用？', { btn: ['是', '否'], icon: 3, title: '提示' }, function (index) {
+                for (var i = 0; i < checkStatus.data.length; i++) {
+                    if (checkStatus.data[i].Status == "编辑" || checkStatus.data[i].Status == "失效") {
+                        obj.push(checkStatus.data[i].UserId);
+                    }
+                }
+                if (obj.length > 0) {
+                    $.ajax({
+                        type: 'post',
+                        dataType: 'json',
+                        traditional: true,
+                        url: '@Url.Action("EnableStatus", "AppUser")',
+                        data: {
+                            id: obj
+                        },
+                        success: function (res) {
+                            if (res.code == 200) {
+                                layer.msg(res.msg, { icon: 6 });
+                                Refresh();
+                            } else {
+                                layer.msg(res.msg, { icon: 5 });
+                            }
+                        },
+                        error: function () {
+                            layer.msg("接口出错，请联系管理员", { icon: 5 });
+                        }
+                    });
+                } else {
+                    layer.msg('勾选的数据状态不在编辑、失效状态', {
+                        icon: 5
+                    });
+                }
+            });
+        } else {
+            layer.msg('请先勾选数据', {
+                icon: 5
+            });
+        }
+    }
+
+    //失效
+    function btnFailure() {
+        var checkStatus = table.checkStatus('table1');
+        if (checkStatus.data.length > 0) {
+            var obj = [];
+            layer.confirm('是否失效？', { btn: ['是', '否'], icon: 3, title: '提示' }, function (index) {
+                for (var i = 0; i < checkStatus.data.length; i++) {
+                    if (checkStatus.data[i].Status == "编辑" || checkStatus.data[i].Status == "有效") {
+                        obj.push(checkStatus.data[i].UserId);
+                    }
+                }
+                if (obj.length > 0) {
+                    $.ajax({
+                        type: 'post',
+                        dataType: 'json',
+                        traditional: true,
+                        url: '@Url.Action("FailureStatus", "AppUser")',
+                        data: {
+                            id: obj
+                        },
+                        success: function (res) {
+                            if (res.code == 200) {
+                                layer.msg(res.msg, { icon: 6 });
+                                Refresh();
+                            } else {
+                                layer.msg(res.msg, { icon: 5 });
+                            }
+                        },
+                        error: function () {
+                            layer.msg("接口出错，请联系管理员", { icon: 5 });
+                        }
+                    });
+                } else {
+                    layer.msg('勾选的数据状态不在编辑、有效状态', {
+                        icon: 5
+                    });
+                }
+            });
+        } else {
+            layer.msg('请先勾选数据', {
+                icon: 5
+            });
+        }
+    }
+    //恢复编辑
+    function btnReset() {
+        var checkStatus = table.checkStatus('table1');
+        if (checkStatus.data.length > 0) {
+            var obj = [];
+            layer.confirm('是否恢复编辑状态？', { btn: ['是', '否'], icon: 3, title: '提示' }, function (index) {
+                for (var i = 0; i < checkStatus.data.length; i++) {
+                    if (checkStatus.data[i].Status == "有效" || checkStatus.data[i].Status == "失效") {
+                        obj.push(checkStatus.data[i].UserId);
+                    }
+                }
+                if (obj.length > 0) {
+                    $.ajax({
+                        type: 'post',
+                        dataType: 'json',
+                        traditional: true,
+                        url: '@Url.Action("ResetStatus", "AppUser")',
+                        data: {
+                            id: obj
+                        },
+                        success: function (res) {
+                            if (res.code == 200) {
+                                layer.msg(res.msg, { icon: 6 });
+                                Refresh();
+                            } else {
+                                layer.msg(res.msg, { icon: 5 });
+                            }
+                        },
+                        error: function () {
+                            layer.msg("接口出错，请联系管理员", { icon: 5 });
+                        }
+                    });
+                } else {
+                    layer.msg('勾选的数据状态不在有效、失效状态', {
+                        icon: 5
+                    });
+                }
+            });
+        } else {
+            layer.msg('请先勾选数据', {
+                icon: 5
+            });
+        }
+    }
+
+    //导出
+    function btnExport() {
+        var _form = document.createElement("form");
+        document.body.appendChild(_form);
+        _form.action = '@Url.Action("Export", "AppUser")';
+        _form.data = '';
+        _form.method = 'post';
+        var _input = document.createElement("input");
+        _input.setAttribute("name", "CorpId");
+        _input.setAttribute("type", "hidden");
+        _input.setAttribute("value", $('select[name="Corp"] option:selected').val());
+        var _input2 = document.createElement("input");
+        _input2.setAttribute("name", "Status");
+        _input2.setAttribute("type", "hidden");
+        _input2.setAttribute("value", $('#Status input[name="radioName"]:checked ').val());
+        var _input3 = document.createElement("input");
+        _input3.setAttribute("name", "UserCode");
+        _input3.setAttribute("type", "hidden");
+        _input3.setAttribute("value", $('#UserCode').val());
+        var _input4 = document.createElement("input");
+        _input4.setAttribute("name", "UserName");
+        _input4.setAttribute("type", "hidden");
+        _input4.setAttribute("value", $('#UserName').val());
+        var _input5 = document.createElement("input");
+        _input5.setAttribute("name", "DeptId");
+        _input5.setAttribute("type", "hidden");
+        _input5.setAttribute("value", $('select[name="Dept"] option:selected').val());
+        _form.appendChild(_input);
+        _form.appendChild(_input2);
+        _form.appendChild(_input3);
+        _form.appendChild(_input4);
+        _form.appendChild(_input5);
+        _form.submit();
+    }
+
+    function btnImport() {
+        var reg = new RegExp('/', "g");//g,表示全部替换。
+        var uploadUrl = '@Url.Action("Import", "AppUser")';
+        layer.open({
+            type: 2,
+            area: ['650px', '450px'],
+            title: 'Excel - 导入',
+            content: '@Url.Action("ExcelImport", "Public")' + '?UploadUrl=' + uploadUrl.replace(reg, "{xg}") + '&ExcelTempUrl=用户导入模板.xlsx'
+        });
+    }
+
+    function btnAllotRole() {
+        var checkStatus = table.checkStatus('table1');
+        if (checkStatus.data.length > 0) {
+            if (checkStatus.data.length > 1) {
+                layer.msg("分配角色只能勾选一行数据", { icon: 5 }); return;
+            }
+            layer.open({
+                type: 2,
+                area: ["800px", "95%"],
+                title: "分配 - 角色",
+                content: '@Url.Action("AppUserAllotRole", "AppUser")' + '?Rowid=' + checkStatus.data[0].UserId
+            });
+        } else {
+            layer.msg('请先勾选数据', {
+                icon: 5
+            });
+        }
+    }
+
+    function btnResetPassword() {
+        var checkStatus = table.checkStatus('table1');
+        if (checkStatus.data.length > 0) {
+            var obj = [];
+            layer.confirm('是否重置密码？', { btn: ['是', '否'], icon: 3, title: '提示' }, function (index) {
+                for (var i = 0; i < checkStatus.data.length; i++) {
+                    obj.push(checkStatus.data[i].UserId);
+                }
+                $.ajax({
+                    type: 'post',
+                    dataType: 'json',
+                    traditional: true,
+                    url: '@Url.Action("ResetPassword", "AppUser")',
+                    data: {
+                        id: obj
+                    },
+                    success: function (res) {
+                        if (res.code == 200) {
+                            layer.msg(res.msg, { icon: 6 });
+                            Refresh();
+                        } else {
+                            layer.msg(res.msg, { icon: 5 });
+                        }
+                    },
+                    error: function () {
+                        layer.msg("接口出错，请联系管理员", { icon: 5 });
+                    }
+                });
+            });
+        } else {
+            layer.msg('请先勾选数据', {
+                icon: 5
+            });
+        }
+    }
+</script>
