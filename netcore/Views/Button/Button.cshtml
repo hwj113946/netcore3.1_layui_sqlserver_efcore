@@ -3,16 +3,10 @@
     Layout = null;
 }
 
-<!DOCTYPE html>
-
-<html>
-<head>
-    <meta name="viewport" content="width=device-width" />
-    <link href="~/layui/css/layui.css" rel="stylesheet" />
-    <script src="~/layui/layui.js"></script>
-    <script src="~/js/jquery-3.2.1.min.js"></script>
-    <title>Button</title>
-    <script>
+<script src="~/js/jquery-3.2.1.min.js"></script>
+<script src="~/layui/layui.js"></script>
+<link href="~/layui/css/layui.css" rel="stylesheet" />
+<script>
         var table, ins, layer;
         layui.use(['table', 'layer'], function () {
             table = layui.table, layer = layui.layer;
@@ -28,7 +22,7 @@
                 limit: 20,
                 limits: [20, 30, 40, 50],
                 cols: [[
-                    { type: 'checkbox', fixed: 'left', widht: 35 },
+                    { type: 'checkbox', fixed: 'left'},
                     { field: 'ButtonId', hide: true },
                     { field: 'ButtonElementId', title: '按钮htmlID', sort: true },
                     { field: 'ButtonName', title: '按钮名称', sort: true },
@@ -105,22 +99,18 @@
                 }
             });
         }
-    </script>
-</head>
-<body>
-    <div>
-        <br />
-        <div class="layui-inline">
-            <div class="layui-input-inline"></div>
-            <div class="layui-input-inline">
-                <input class="layui-input" type="text" id="BUTTON_NAME" placeholder="按钮名称" />
-            </div>
-            <button class="layui-btn layui-btn-sm layui-btn-primary" onclick="Refresh()">查询</button>
-            <button class="layui-btn layui-btn-sm" onclick="btnAdd()">新增</button>
-            <button class="layui-btn layui-btn-sm layui-btn-normal" onclick="btnEdit()">编辑</button>
-            <button class="layui-btn layui-btn-sm layui-btn-danger" onclick="btnDel()">删除</button>
+</script>
+<div>
+    <br />
+    <div class="layui-inline">
+        <div class="layui-input-inline"></div>
+        <div class="layui-input-inline">
+            <input class="layui-input" type="text" id="BUTTON_NAME" placeholder="按钮名称" />
         </div>
-        <table id="table1" lay-filter="table1"></table>
+        <button class="layui-btn layui-btn-sm layui-btn-primary" onclick="Refresh()">查询</button>
+        <button class="layui-btn layui-btn-sm" onclick="btnAdd()">新增</button>
+        <button class="layui-btn layui-btn-sm layui-btn-normal" onclick="btnEdit()">编辑</button>
+        <button class="layui-btn layui-btn-sm layui-btn-danger" onclick="btnDel()">删除</button>
     </div>
-</body>
-</html>
+    <table id="table1" lay-filter="table1"></table>
+</div>

@@ -5268,3 +5268,8 @@ body .layui-util-face {
     top: 50%;
     transform: translateY(-50%);
 }
+
+/*
+.layui-table-cell .laytable-cell-radio {
+    padding: 10px 15px 0 15px;
+}*/

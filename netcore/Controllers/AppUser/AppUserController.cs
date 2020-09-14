@@ -42,6 +42,13 @@ namespace netcore.Controllers.AppUser
         }
 
         [CheckCustomer]
+        public IActionResult AppUserAllotRole()
+        {
+            ViewBag.UserId = HttpContext.Request.Query["Rowid"].ToString() ?? "";
+            return View();
+        }
+
+        [CheckCustomer]
         public IActionResult AppUserModifyPassword()
         {
             ViewBag.UserId = HttpContext.Session.GetInt32("user_id");
@@ -720,6 +727,187 @@ namespace netcore.Controllers.AppUser
             {
                 logger.LogInformation(HttpContext.Session.GetString("who") + "用户修改密码失败。" + ex.Message);
                 return Json(new { code = 300, msg = "修改失败" });
+            }
+        }
+        #endregion
+
+        #region 用户分配角色：获取列表
+        [HttpGet]
+        public async Task<IActionResult> GetUserRoleList(int UserId, string RoleName, string Status, int page, int limit)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(Status))
+                {
+                    return Json(new { code = 1, msg = "传入参数不全", count = 0, data = new { } });
+                }
+                else
+                {
+                    if (Status == "未选")
+                    {
+                        var list = await (from rs in (
+                                    (from r in context.AppRoles
+                                     join ur in context.AppUserRoles
+                                     on r.RoleId equals ur.RoleId
+                                     into ur_join 
+                                     from ur in ur_join.DefaultIfEmpty()
+                                     select new
+                                     {
+                                         r.RoleId,
+                                         r.RoleName,
+                                         Status =
+                                       ur.RoleId == null ? "未选" : "已选"
+                                     }))
+                                          where
+                                            rs.Status == "未选"
+                                          select new
+                                          {
+                                              rs.RoleId,
+                                              rs.RoleName,
+                                              rs.Status
+                                          }).ToListAsync();
+                        decimal count = 0;
+                        if (list.Count > 0)
+                        {
+                            if (!string.IsNullOrEmpty(RoleName))
+                            {
+                                list = list.Where(u => u.RoleName.Contains(RoleName)).ToList();
+                            }
+                            count = Math.Ceiling(Convert.ToDecimal(list.Count) / Convert.ToDecimal(limit));
+                            if (page > count)
+                            {
+                                return Json(new { code = 1, msg = "没有更多数据了。", count = Convert.ToInt32(count), data = new { } });
+                            }
+                            list = list.Skip((page - 1) * limit).Take(limit).ToList();
+                        }
+                        else
+                        {
+                            return Json(new { code = 0, msg = "查询成功，与查询条件相符的数据为0行", count = Convert.ToInt32(count), data = new { } });
+                        }
+                        return Json(new { code = 0, msg = "查询成功", count = Convert.ToInt32(count), data = list });
+                    }
+                    else
+                    {
+                        var list = await (from r in context.AppRoles
+                                          join ur in context.AppUserRoles
+                                          on r.RoleId equals ur.RoleId
+                                          select new
+                                          {
+                                              r.RoleId,
+                                              r.RoleName
+                                          }).ToListAsync();
+                        decimal count = 0;
+                        if (list.Count > 0)
+                        {
+                            if (!string.IsNullOrEmpty(RoleName))
+                            {
+                                list = list.Where(u => u.RoleName.Contains(RoleName)).ToList();
+                            }
+                            count = Math.Ceiling(Convert.ToDecimal(list.Count) / Convert.ToDecimal(limit));
+                            if (page > count)
+                            {
+                                return Json(new { code = 1, msg = "没有更多数据了。", count = Convert.ToInt32(count), data = new { } });
+                            }
+                            list = list.Skip((page - 1) * limit).Take(limit).ToList();
+                        }
+                        else
+                        {
+                            return Json(new { code = 0, msg = "查询成功，与查询条件相符的数据为0行", count = Convert.ToInt32(count), data = new { } });
+                        }
+                        return Json(new { code = 0, msg = "查询成功", count = Convert.ToInt32(count), data = list });
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.LogInformation(HttpContext.Session.GetString("who") + "查询角色失败(用户分配角色界面)。"+ex.Message);
+                return Json(new { code = 1, msg = "查询失败，请联系管理员", count = 0, data = new { } });
+            }
+        }
+        #endregion
+
+        #region 分配角色
+        [HttpPost]
+        public async Task<IActionResult> AllotRole(int[] id,int UserId)
+        {
+            using (var tran = context.Database.BeginTransaction())
+            {
+                try
+                {
+                    var list = new List<Models.AppUserRole>();
+                    for (int i = 0; i < id.Length; i++)
+                    {
+                        var single = await context.AppUserRoles.AsNoTracking().SingleOrDefaultAsync(u => u.RoleId == id[i] && u.UserId == UserId);
+                        if (single == null)
+                        {
+                            list.Add(new Models.AppUserRole()
+                            {
+                                RoleId = id[i],
+                                UserId = UserId
+                            });
+                        }
+                    }
+                    if (list.Count > 0)
+                    {
+                        context.AppUserRoles.AddRange(list);
+                        await context.SaveChangesAsync();
+                        await tran.CommitAsync();
+                        logger.LogInformation(HttpContext.Session.GetString("who") + "分配成功。");
+                        return Json(new { code = 200, msg = "分配成功" });
+                    }
+                    else
+                    {
+                        logger.LogInformation(HttpContext.Session.GetString("who") + "分配角色：角色不存在或未勾选数据或该用户已拥有勾选的角色。");
+                        return Json(new { code = 300, msg = "角色不存在或未勾选数据或该用户已拥有勾选的角色" });
+                    }
+                }
+                catch (Exception ex)
+                {
+                    await tran.RollbackAsync();
+                    logger.LogInformation(HttpContext.Session.GetString("who") + "分配角色失败。" + ex.Message);
+                    return Json(new { code = 300, msg = "分配失败" });
+                }
+            }
+        }
+        #endregion
+
+        #region 移除角色
+        [HttpPost]
+        public async Task<IActionResult> RemoveRole(int[] id, int UserId)
+        {
+            using (var tran = context.Database.BeginTransaction())
+            {
+                try
+                {
+                    var list = new List<Models.AppUserRole>();
+                    for (int i = 0; i < id.Length; i++)
+                    {
+                        var single = await context.AppUserRoles.SingleOrDefaultAsync(u => u.RoleId == id[i] && u.UserId == UserId);
+                        if (single != null)
+                        {
+                            list.Add(single);
+                        }
+                    }
+                    if (list.Count > 0)
+                    {
+                        context.AppUserRoles.RemoveRange(list);
+                        await context.SaveChangesAsync();
+                        await tran.CommitAsync();
+                        logger.LogInformation(HttpContext.Session.GetString("who") + "移除角色成功。");
+                        return Json(new { code = 200, msg = "移除成功" });
+                    }
+                    else
+                    {
+                        logger.LogInformation(HttpContext.Session.GetString("who") + "移除橘色：角色不存在或未勾选数据或该用户已移除勾选的角色。");
+                        return Json(new { code = 300, msg = "角色不存在或未勾选数据或该用户已移除勾选的角色" });
+                    }
+                }
+                catch (Exception ex)
+                {
+                    await tran.RollbackAsync();
+                    logger.LogInformation(HttpContext.Session.GetString("who") + "移除角色失败。" + ex.Message);
+                    return Json(new { code = 300, msg = "移除失败" });
+                }
             }
         }
         #endregion

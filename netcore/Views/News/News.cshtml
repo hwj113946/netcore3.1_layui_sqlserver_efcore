@@ -3,55 +3,48 @@
     Layout = null;
 }
 
-<!DOCTYPE html>
-
-<html>
-<head>
-    <meta name="viewport" content="width=device-width" />
-    <title>Corp</title>
-    <script src="~/js/jquery-3.2.1.min.js"></script>
-    <link href="~/layui/css/layui.css" rel="stylesheet" />
-    <script src="~/layui/layui.js"></script>
-</head>
-<body>
-    <form class="layui-form">
-        <br />
-        <div class="layui-inline"></div>
-        <div class="layui-inline">
-            <div class="layui-input-inline">
-                <select name="Type" id="typeSelect" lay-verify="" lay-filter="typeSelect" lay-search></select>
-            </div>
-            <div class="layui-input-inline">
-                <input type="text" id="NewsTitle" lay-verify="" placeholder="请输入新闻标题" class="layui-input" />
-            </div>
-            <div class="layui-input-inline" id="Status">
-                <input type="radio" name="radioName" value="全部" lay-filter="radio" title="全部" checked="" class="">
-                <input type="radio" name="radioName" value="编辑" lay-filter="radio" title="编辑" class="">
-                <input type="radio" name="radioName" value="已发布" lay-filter="radio" title="已发布" class="">
-                <input type="radio" name="radioName" value="取消发布" lay-filter="radio" title="取消发布" class="">
-            </div>
-            <div class="layui-input-inline">
-                <a class="layui-btn layui-btn-sm layui-btn-primary" onclick="Refresh()">查询</a>
-            </div>
-            <div class="layui-input-inline">
-                <a class="layui-btn layui-btn-sm" onclick="btnAdd()">新增</a>
-            </div>
-            <div class="layui-input-inline">
-                <a id="btnEdit" class="layui-btn layui-btn-sm layui-btn-normal" onclick="btnEdit()">编辑</a>
-            </div>
-            <div class="layui-input-inline">
-                <a id="btnDelete" class="layui-btn layui-btn-sm layui-btn-danger" onclick="btnDel()">删除</a>
-            </div>
-            <div class="layui-input-inline">
-                <a id="btnRelease" class="layui-btn layui-btn-sm" onclick="btnRelease()">发布</a>
-            </div>
-            <div class="layui-input-inline">
-                <a id="btnCancel" class="layui-btn layui-btn-sm layui-btn-danger" onclick="btnCancel()">取消发布</a>
-            </div>
+<meta name="viewport" content="width=device-width" />
+<script src="~/js/jquery-3.2.1.min.js"></script>
+<script src="~/layui/layui.js"></script>
+<link href="~/layui/css/layui.css" rel="stylesheet" />
+<form class="layui-form">
+    <br />
+    <div class="layui-inline"></div>
+    <div class="layui-inline">
+        <div class="layui-input-inline">
+            <select name="Type" id="typeSelect" lay-verify="" lay-filter="typeSelect" lay-search></select>
         </div>
-        <table id="table1" lay-filter="table1"></table>
-    </form>
-    <script>
+        <div class="layui-input-inline">
+            <input type="text" id="NewsTitle" lay-verify="" placeholder="请输入新闻标题" class="layui-input" />
+        </div>
+        <div class="layui-input-inline" id="Status">
+            <input type="radio" name="radioName" value="全部" lay-filter="radio" title="全部" checked="" class="">
+            <input type="radio" name="radioName" value="编辑" lay-filter="radio" title="编辑" class="">
+            <input type="radio" name="radioName" value="已发布" lay-filter="radio" title="已发布" class="">
+            <input type="radio" name="radioName" value="取消发布" lay-filter="radio" title="取消发布" class="">
+        </div>
+        <div class="layui-input-inline">
+            <a class="layui-btn layui-btn-sm layui-btn-primary" onclick="Refresh()">查询</a>
+        </div>
+        <div class="layui-input-inline">
+            <a class="layui-btn layui-btn-sm" onclick="btnAdd()">新增</a>
+        </div>
+        <div class="layui-input-inline">
+            <a id="btnEdit" class="layui-btn layui-btn-sm layui-btn-normal" onclick="btnEdit()">编辑</a>
+        </div>
+        <div class="layui-input-inline">
+            <a id="btnDelete" class="layui-btn layui-btn-sm layui-btn-danger" onclick="btnDel()">删除</a>
+        </div>
+        <div class="layui-input-inline">
+            <a id="btnRelease" class="layui-btn layui-btn-sm" onclick="btnRelease()">发布</a>
+        </div>
+        <div class="layui-input-inline">
+            <a id="btnCancel" class="layui-btn layui-btn-sm layui-btn-danger" onclick="btnCancel()">取消发布</a>
+        </div>
+    </div>
+    <table id="table1" lay-filter="table1"></table>
+</form>
+<script>
         function GetNewsType(form) {
             $.ajax({
                 type: 'get',
@@ -356,6 +349,4 @@
                 });
             }
         }
-    </script>
-</body>
-</html>
+</script>

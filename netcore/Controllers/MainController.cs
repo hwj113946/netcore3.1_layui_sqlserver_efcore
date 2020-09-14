@@ -41,7 +41,7 @@ namespace netcore.Controllers
             }
             else
             {
-                ViewBag.need = user.ModifyPasswordDate == null || (user.ModifyPasswordDate > DateTime.Now.AddDays(-90));
+                ViewBag.need = user.ModifyPasswordDate == null || (user.ModifyPasswordDate > DateTime.Now.AddDays(-90)) ? false : true;
             }
 
             return View();

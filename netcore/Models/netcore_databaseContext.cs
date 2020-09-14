@@ -632,11 +632,13 @@ namespace netcore.Models
 
             modelBuilder.Entity<AppUserRole>(entity =>
             {
-                entity.HasNoKey();
+                entity.HasKey(x => x.UserRoleId);
 
                 entity.ToTable("app_user_role");
 
                 entity.HasAnnotation("Relational:IsTableExcludedFromMigrations", false);
+
+                entity.Property(e => e.UserRoleId).HasColumnName("user_role_id");
 
                 entity.Property(e => e.RoleId).HasColumnName("role_id");
 

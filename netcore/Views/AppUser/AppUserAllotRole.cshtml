@@ -1,5 +1,182 @@
-﻿@*
-    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
-*@
-@{
+﻿@{
+    Layout = null;
 }
+
+<script src="~/js/jquery-3.2.1.min.js"></script>
+<script src="~/layui/layui.js"></script>
+<link href="~/layui/css/layui.css" rel="stylesheet" />
+<script type="text/html" id="toolbar">
+    <div class="layui-btn-container">
+        <a class="layui-btn layui-btn-sm layui-btn-primary" onclick="Refresh()">查询</a>
+        <a id="btnChoose" class="layui-btn layui-btn-sm layui-btn-primary" onclick="btnChoose()">选择</a>
+        <a id="btnRemove" class="layui-btn layui-btn-sm layui-btn-primary" onclick="btnRemove()">移除</a>
+    </div>
+</script>
+
+<form class="layui-form">
+    <br />
+    <div class="layui-inline"></div>
+    <div class="layui-inline">
+        <div class="layui-input-inline">
+            <input type="text" class="layui-input" id="RoleName" placeholder="角色名称">
+        </div>
+        <div class="layui-input-inline" id="Status">
+            <input type="radio" name="radioName" value="未选" lay-filter="radio" title="未选" checked="" class="">
+            <input type="radio" name="radioName" value="已选" lay-filter="radio" title="已选" class="">
+        </div>
+    </div>
+    <table id="table1" lay-filter="table1"></table>
+</form>
+
+<script>
+    var table, ins, layer, form, upload, files;
+    layui.use(['table', 'form', 'upload'], function () {
+        table = layui.table, layer = layui.layer, form = layui.form, upload = layui.upload;
+        form.render();
+        ins = table.render({
+            elem: '#table1',
+            toolbar: '#toolbar'
+            , defaultToolbar: ['filter']
+            , cellMinWidth: 120
+            , height: document.documentElement.clientHeight - 80
+            , url: '@Url.Action("GetUserRoleList", "AppUser")',
+            where: {
+                Status: '未选',
+                RoleName: '',
+                UserId:'@ViewBag.UserId'
+            }, method: 'get'
+            , page: true //开启分页
+            , limit: 20
+            , limits: [20, 50, 100]
+            , cols: [[ //表头
+                { type: 'checkbox', fixed: 'left' }
+                , { field: 'RoleId', title: '角色ID', hide: true }
+                , { field: 'RoleName', title: '角色名称', sort: true }
+            ]], loading: true,
+            done: function () {
+                var val = $('#Status input[name="radioName"]:checked ').val();
+                if (val == "未选") {
+                    $("#btnChoose").css({ "display": "" });
+                    $("#btnRemove").css({ "display": "none" });
+                } else if (val == "已选") {
+                    $("#btnChoose").css({ "display": "none" });
+                    $("#btnRemove").css({ "display": "" });
+                }
+            }
+        });
+        //监听单选框变更
+        form.on('radio(radio)', function (data) {
+            if (data.value == "未选") {
+                $("#btnChoose").css({ "display": "" });
+                $("#btnRemove").css({ "display": "none" });
+            } else if (data.value == "已选") {
+                $("#btnChoose").css({ "display": "none" });
+                $("#btnRemove").css({ "display": "" });
+            }
+            Refresh();
+        });
+    });
+    function Refresh() {
+        table.reload("table1", {
+            url: '@Url.Action("GetUserRoleList", "AppUser")',
+            where: {
+                Status: $('#Status input[name="radioName"]:checked ').val(),
+                RoleName: $("#RoleName").val(),
+                UserId:'@ViewBag.UserId'
+            }, method: "get",
+            page: {
+                curr: 1
+            }
+        });
+    }
+
+    function btnChoose() {
+        var checkStatus = table.checkStatus('table1');
+        if (checkStatus.data.length > 0) {
+            var obj = [];
+            layer.confirm('是否选择？', { btn: ['是', '否'], icon: 3, title: '提示' }, function (index) {
+                for (var i = 0; i < checkStatus.data.length; i++) {
+                    if ($('#Status input[name="radioName"]:checked ').val() == "未选") {
+                        obj.push(checkStatus.data[i].RoleId);
+                    }
+                }
+                if (obj.length > 0) {
+                    $.ajax({
+                        type: 'post',
+                        dataType: 'json',
+                        traditional: true,
+                        url: '@Url.Action("AllotRole", "AppUser")',
+                        data: {
+                            id: obj,
+                            UserId:'@ViewBag.UserId'
+                        },
+                        success: function (res) {
+                            if (res.code == 200) {
+                                layer.msg(res.msg, { icon: 6 });
+                                Refresh();
+                            } else {
+                                layer.msg(res.msg, { icon: 5 });
+                            }
+                        },
+                        error: function () {
+                            layer.msg("接口出错，请联系管理员", { icon: 5 });
+                        }
+                    });
+                } else {
+                    layer.msg('勾选的数据状态不在未选状态', {
+                        icon: 5
+                    });
+                }
+            });
+        } else {
+            layer.msg('请先勾选数据', {
+                icon: 5
+            });
+        }
+    }
+
+    function btnRemove() {
+        var checkStatus = table.checkStatus('table1');
+        if (checkStatus.data.length > 0) {
+            var obj = [];
+            layer.confirm('是否移除？', { btn: ['是', '否'], icon: 3, title: '提示' }, function (index) {
+                for (var i = 0; i < checkStatus.data.length; i++) {
+                    if ($('#Status input[name="radioName"]:checked ').val() == "已选") {
+                        obj.push(checkStatus.data[i].RoleId);
+                    }
+                }
+                if (obj.length > 0) {
+                    $.ajax({
+                        type: 'post',
+                        dataType: 'json',
+                        traditional: true,
+                        url: '@Url.Action("RemoveRole", "AppUser")',
+                        data: {
+                            id: obj,
+                            UserId:'@ViewBag.UserId'
+                        },
+                        success: function (res) {
+                            if (res.code == 200) {
+                                layer.msg(res.msg, { icon: 6 });
+                                Refresh();
+                            } else {
+                                layer.msg(res.msg, { icon: 5 });
+                            }
+                        },
+                        error: function () {
+                            layer.msg("接口出错，请联系管理员", { icon: 5 });
+                        }
+                    });
+                } else {
+                    layer.msg('勾选的数据状态不在已选状态', {
+                        icon: 5
+                    });
+                }
+            });
+        } else {
+            layer.msg('请先勾选数据', {
+                icon: 5
+            });
+        }
+    }
+</script>
