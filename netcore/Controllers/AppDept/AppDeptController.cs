@@ -180,8 +180,8 @@ namespace netcore.Controllers.AppDept
                             modify.LastModifiedUser = HttpContext.Session.GetInt32("user_id");
                             context.AppDepts.Update(modify);
                             await context.SaveChangesAsync();
-                            logger.LogInformation(HttpContext.Session.GetString("who") + "新增部门成功。");
-                            return Json(new { code = 200, msg = "新增成功" });
+                            logger.LogInformation(HttpContext.Session.GetString("who") + "编辑部门成功。");
+                            return Json(new { code = 200, msg = "编辑成功" });
                         }
                         else
                         {
@@ -190,7 +190,24 @@ namespace netcore.Controllers.AppDept
                     }
                     else
                     {
-                        return Json(new { code = 300, msg = "该部门名称在该公司中已经存在" });
+                        if (single1.DeptId!=DeptId)
+                        {
+                            return Json(new { code = 300, msg = "该部门名称在该公司中已经存在" });
+                        }
+                        else
+                        {
+                            single1.CorpId = CorpId;
+                            single1.DeptCode = DeptCode ?? "";
+                            single1.DeptName = DeptName ?? "";
+                            single1.Note = Note ?? "";
+                            single1.LastModifiedDate = DateTime.Now;
+                            single1.LastModifiedUser = HttpContext.Session.GetInt32("user_id");
+                            context.AppDepts.Update(single1);
+                            await context.SaveChangesAsync();
+                            logger.LogInformation(HttpContext.Session.GetString("who") + "编辑部门成功。");
+                            return Json(new { code = 200, msg = "编辑成功" });
+                        }
+                        
                     }
                 }
                 else
@@ -242,8 +259,8 @@ namespace netcore.Controllers.AppDept
                                     modify.LastModifiedUser = HttpContext.Session.GetInt32("user_id");
                                     context.AppDepts.Update(modify);
                                     await context.SaveChangesAsync();
-                                    logger.LogInformation(HttpContext.Session.GetString("who") + "新增部门成功。");
-                                    return Json(new { code = 200, msg = "新增成功" });
+                                    logger.LogInformation(HttpContext.Session.GetString("who") + "编辑部门成功。");
+                                    return Json(new { code = 200, msg = "编辑成功" });
                                 }
                                 else
                                 {
@@ -257,8 +274,8 @@ namespace netcore.Controllers.AppDept
             }
             catch (Exception ex)
             {
-                logger.LogInformation(HttpContext.Session.GetString("who") + "新增部门失败。" + ex.Message);
-                return Json(new { code = 300, msg = "新增失败" });
+                logger.LogInformation(HttpContext.Session.GetString("who") + "编辑部门失败。" + ex.Message);
+                return Json(new { code = 300, msg = "编辑失败" });
             }
         }
         #endregion
