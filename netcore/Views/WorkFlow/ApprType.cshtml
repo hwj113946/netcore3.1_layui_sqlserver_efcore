@@ -1,0 +1,282 @@
+﻿@{
+    Layout = null;
+}
+<script src="~/js/jquery-3.2.1.min.js"></script>
+<script src="~/layui/layui.js"></script>
+<link href="~/layui/css/layui.css" rel="stylesheet" />
+<script type="text/html" id="toolbar">
+    <div class="layui-btn-container">
+        <a class="layui-btn layui-btn-sm layui-btn-primary" onclick="Refresh()">查询</a>
+        <a class="layui-btn layui-btn-sm layui-btn-primary" onclick="btnAdd()">新增</a>
+        <a id="btnEdit" class="layui-btn layui-btn-sm layui-btn-primary" onclick="btnEdit()">编辑</a>
+        <a id="btnDelete" class="layui-btn layui-btn-sm layui-btn-primary" onclick="btnDel()">删除</a>
+    </div>
+</script>
+<form class="layui-form">
+    <br />
+    <div class="layui-inline"></div>
+    <div class="layui-inline">
+        <div class="layui-input-inline">
+            <input type="text" id="ApprTypeCode" lay-verify="" placeholder="审批流类型代码" class="layui-input" />
+        </div>
+        <div class="layui-input-inline">
+            <input type="text" id="ApprTypeName" lay-verify="" placeholder="审批流类型名称" class="layui-input" />
+        </div>
+        <div class="layui-input-inline" id="Status">
+            <input type="radio" name="radioName" value="全部" lay-filter="radio" title="全部" checked="" class="">
+            <input type="radio" name="radioName" value="有效" lay-filter="radio" title="有效" class="">
+            <input type="radio" name="radioName" value="失效" lay-filter="radio" title="失效" class="">
+        </div>
+    </div>
+    <table id="table1" lay-filter="table1"></table>
+</form>
+
+<script>
+    var table, ins, layer, form;
+    layui.use(['table', 'form', 'upload'], function () {
+        table = layui.table, layer = layui.layer, form = layui.form;
+        form.render();
+        ins = table.render({
+            elem: '#table1',
+            toolbar: '#toolbar'
+            , defaultToolbar: ['filter']
+            , cellMinWidth:120
+            , height: document.documentElement.clientHeight - 80
+            , url: '@Url.Action("GetApprTypeList", "WorkFlow")',
+            where: {
+                ApprTypeCode:'',
+                ApprTypeName: '',
+                Status: '全部'
+            }, method: 'get'
+            , page: true //开启分页
+            , limit: 20
+            , limits: [20, 50, 100]
+            , cols: [[ //表头
+                { type: 'checkbox', fixed: 'left' }
+                , { field: 'ApprTypeId', title: '类型ID', hide: true }
+                , { field: 'ApprTypeCode', title: '类型代码', sort: true }
+                , { field: 'ApprTypeName', title: '类型名称', width: 180, sort: true }
+                , { field: 'TableName', title: '数据表名称', sort: true }
+                , { field: 'TablePkName', title: '数据表主键名称', sort: true }
+                , { field: 'TableStatusName', title: '数据表状态名称', sort: true }
+                , {field:  'TableApprIdName', title: '数据表审批ID名称', sort: true }
+                , { field: 'ApprStartStatus', title: '发起审批后的状态', sort: true }
+                , { field: 'ApprEndStatus', title: '审批通过后的状态', sort: true }
+                , { field: 'ApprCancelStatus', title: '审批退回后的状态', sort: true }
+                , { field: 'PageViewUrl', title: '审批默认查看界面地址', sort: true }
+                , { field: 'TransProcName', title: '审批通过后调用存储过程', sort: true }
+                , { field: 'Status', title: '状态', width: 100, sort: true }
+            ]], loading: true,
+            done: function () {
+                var val = $('#Status input[name="radioName"]:checked ').val();
+                if (val == "全部") {
+                    $("#btnEdit").css({ "display": "" });
+                    $("#btnDelete").css({ "display": "" });
+                    $("#btnRelease").css({ "display": "" });
+                    $("#btnCancel").css({ "display": "" });
+                }
+                else if (val == "有效") {
+                    $("#btnEdit").css({ "display": "" });
+                    $("#btnDelete").css({ "display": "none" });
+                    $("#btnRelease").css({ "display": "none" });
+                    $("#btnCancel").css({ "display": "" });
+                }
+                else if (val == "失效") {
+                    $("#btnEdit").css({ "display": "" });
+                    $("#btnDelete").css({ "display": "" });
+                    $("#btnRelease").css({ "display": "" });
+                    $("#btnCancel").css({ "display": "none" });
+                }
+            }
+        });
+        //监听单选框变更
+        form.on('radio(radio)', function (data) {
+            if (data.value == "全部") {
+                $("#btnEdit").css({ "display": "" });
+                $("#btnDelete").css({ "display": "" });
+                $("#btnRelease").css({ "display": "" });
+                $("#btnCancel").css({ "display": "" });
+            }
+            else if (data.value == "有效") {
+                $("#btnEdit").css({ "display": "" });
+                $("#btnDelete").css({ "display": "none" });
+                $("#btnRelease").css({ "display": "none" });
+                $("#btnCancel").css({ "display": "" });
+            }
+            else if (data.value == "失效") {
+                $("#btnEdit").css({ "display": "" });
+                $("#btnDelete").css({ "display": "" });
+                $("#btnRelease").css({ "display": "" });
+                $("#btnCancel").css({ "display": "none" });
+            }
+            Refresh();
+        });
+    });
+
+
+    function Refresh() {
+        table.reload("table1", {
+            url: '@Url.Action("GetApprTypeList", "WorkFlow")',
+            where: {
+                ApprTypeCode: $("#ApprTypeCode").val(),
+                ApprTypeName: $("#ApprTypeName").val(),
+                Status: $('#Status input[name="radioName"]:checked ').val()
+            }, method: "get",
+            page: {
+                curr: 1
+            }
+        });
+    }
+    //新增
+    function btnAdd() {
+        layer.open({
+            type: 2,
+            area: ["750px", "95%"],
+            title: "新增 - 审批流类型",
+            content: '@Url.Action("ApprTypeEdit","WorkFlow")' + '?status=add&Rowid='
+        });
+    }
+        //编辑
+    function btnEdit() {
+        var checkStatus = table.checkStatus('table1');
+        if (checkStatus.data.length > 0) {
+            if (checkStatus.data.length > 1) {
+                layer.msg("编辑只能勾选一行数据", { icon: 5 }); return;
+            }
+            layer.open({
+                type: 2,
+                area: ["750px", "95%"],
+                title: "编辑 - 审批流类型",
+                content: '@Url.Action("ApprTypeEdit", "WorkFlow")' + '?status=update&Rowid=' + checkStatus.data[0].ApprTypeId
+            });
+        } else {
+            layer.msg('请先勾选数据', {
+                icon: 5
+            });
+        }
+    }
+    //删除
+    function btnDel() {
+        var checkStatus = table.checkStatus('table1');
+        if (checkStatus.data.length > 0) {
+            var obj = [];
+            layer.confirm('删除会影响当前正在审批的数据，是否删除？', { btn: ['是', '否'], icon: 3, title: '提示' }, function (index) {
+                for (var i = 0; i < checkStatus.data.length; i++) {
+                        obj.push(checkStatus.data[i].ApprTypeId);
+                }
+                $.ajax({
+                    type: 'post',
+                    dataType: 'json',
+                    traditional: true,
+                    url: '@Url.Action("DeleteApprType", "WorkFlow")',
+                    data: {
+                        id: obj
+                    },
+                    success: function (res) {
+                        if (res.code == 200) {
+                            layer.msg(res.msg, { icon: 6 });
+                            Refresh();
+                        } else {
+                            layer.msg(res.msg, { icon: 5 });
+                        }
+                    },
+                    error: function () {
+                        layer.msg("接口出错，请联系管理员", { icon: 5 });
+                    }
+                });
+            });
+        } else {
+            layer.msg('请先勾选数据', {
+                icon: 5
+            });
+        }
+    }
+    //启用
+    function btnEnable() {
+        var checkStatus = table.checkStatus('table1');
+        if (checkStatus.data.length > 0) {
+            var obj = [];
+            layer.confirm('是否启用？', { btn: ['是', '否'], icon: 3, title: '提示' }, function (index) {
+                for (var i = 0; i < checkStatus.data.length; i++) {
+                    if (checkStatus.data[i].Status == "失效") {
+                        obj.push(checkStatus.data[i].ApprTypeId);
+                    }
+                }
+                if (obj.length > 0) {
+                    $.ajax({
+                        type: 'post',
+                        dataType: 'json',
+                        traditional: true,
+                        url: '@Url.Action("EnableStatusForApprType", "WorkFlow")',
+                        data: {
+                            id: obj
+                        },
+                        success: function (res) {
+                            if (res.code == 200) {
+                                layer.msg(res.msg, { icon: 6 });
+                                Refresh();
+                            } else {
+                                layer.msg(res.msg, { icon: 5 });
+                            }
+                        },
+                        error: function () {
+                            layer.msg("接口出错，请联系管理员", { icon: 5 });
+                        }
+                    });
+                } else {
+                    layer.msg('勾选的数据状态不在失效状态', {
+                        icon: 5
+                    });
+                }
+            });
+        } else {
+            layer.msg('请先勾选数据', {
+                icon: 5
+            });
+        }
+    }
+    //失效
+    function btnFailure() {
+        var checkStatus = table.checkStatus('table1');
+        if (checkStatus.data.length > 0) {
+            var obj = [];
+            layer.confirm('是否失效？', { btn: ['是', '否'], icon: 3, title: '提示' }, function (index) {
+                for (var i = 0; i < checkStatus.data.length; i++) {
+                    if (checkStatus.data[i].Status == "有效") {
+                        obj.push(checkStatus.data[i].ApprTypeId);
+                    }
+                }
+                if (obj.length > 0) {
+                    $.ajax({
+                        type: 'post',
+                        dataType: 'json',
+                        traditional: true,
+                        url: '@Url.Action("FailureStatusForApprType", "WorkFlow")',
+                        data: {
+                            id: obj
+                        },
+                        success: function (res) {
+                            if (res.code == 200) {
+                                layer.msg(res.msg, { icon: 6 });
+                                Refresh();
+                            } else {
+                                layer.msg(res.msg, { icon: 5 });
+                            }
+                        },
+                        error: function () {
+                            layer.msg("接口出错，请联系管理员", { icon: 5 });
+                        }
+                    });
+                } else {
+                    layer.msg('勾选的数据状态不在有效状态', {
+                        icon: 5
+                    });
+                }
+            });
+        } else {
+            layer.msg('请先勾选数据', {
+                icon: 5
+            });
+        }
+    }
+</script>

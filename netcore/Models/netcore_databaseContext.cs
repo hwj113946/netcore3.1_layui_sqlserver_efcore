@@ -33,6 +33,14 @@ namespace netcore.Models
         public virtual DbSet<AppRoleMenu> AppRoleMenus { get; set; }
         public virtual DbSet<AppUser> AppUsers { get; set; }
         public virtual DbSet<AppUserRole> AppUserRoles { get; set; }
+        public virtual DbSet<Appr> Apprs { get; set; }
+        public virtual DbSet<ApprFlow> ApprFlows { get; set; }
+        public virtual DbSet<ApprTran> ApprTrans { get; set; }
+        public virtual DbSet<ApprType> ApprTypes { get; set; }
+        public virtual DbSet<FlowLine> FlowLines { get; set; }
+        public virtual DbSet<FlowLinePro> FlowLinePros { get; set; }
+        public virtual DbSet<FlowNode> FlowNodes { get; set; }
+        public virtual DbSet<FlowNodePro> FlowNodePros { get; set; }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
@@ -675,6 +683,535 @@ namespace netcore.Models
                 entity.Property(e => e.RoleId).HasColumnName("role_id");
 
                 entity.Property(e => e.UserId).HasColumnName("user_id");
+            });
+
+            modelBuilder.Entity<Appr>(entity =>
+            {
+                entity.ToTable("appr");
+
+                entity.HasAnnotation("Relational:IsTableExcludedFromMigrations", false);
+
+                entity.Property(e => e.ApprId)
+                    .HasColumnName("appr_id")
+                    .HasComment("审批id");
+
+                entity.Property(e => e.ApprFlowId)
+                    .HasColumnName("appr_flow_id")
+                    .HasComment("审批流id");
+
+                entity.Property(e => e.CreationDate)
+                    .HasColumnType("datetime")
+                    .HasColumnName("creation_date")
+                    .HasComment("创建时间")
+                    .HasAnnotation("Relational:ColumnType", "datetime");
+
+                entity.Property(e => e.CreationUser)
+                    .HasColumnName("creation_user")
+                    .HasComment("创建人");
+
+                entity.Property(e => e.CurrentSubmitter)
+                    .HasColumnName("current_submitter")
+                    .HasComment("当前审批人id");
+
+                entity.Property(e => e.LastModifiedDate)
+                    .HasColumnType("datetime")
+                    .HasColumnName("last_modified_date")
+                    .HasComment("最后修改时间")
+                    .HasAnnotation("Relational:ColumnType", "datetime");
+
+                entity.Property(e => e.LastModifiedUser)
+                    .HasColumnName("last_modified_user")
+                    .HasComment("最后修改人");
+
+                entity.Property(e => e.Note)
+                    .HasColumnName("note")
+                    .HasComment("审批说明");
+
+                entity.Property(e => e.SourceId)
+                    .HasColumnName("source_id")
+                    .HasComment("来源id");
+
+                entity.Property(e => e.Status)
+                    .HasMaxLength(50)
+                    .HasColumnName("status")
+                    .HasComment("状态：编辑；审批中；审批通过；审批退回");
+
+                entity.Property(e => e.SubmissionTime)
+                    .HasColumnType("datetime")
+                    .HasColumnName("submission_time")
+                    .HasComment("提交时间")
+                    .HasAnnotation("Relational:ColumnType", "datetime");
+
+                entity.Property(e => e.Submitter)
+                    .HasColumnName("submitter")
+                    .HasComment("提交人id");
+
+                entity.Property(e => e.SubmitterCorp)
+                    .HasColumnName("submitter_corp")
+                    .HasComment("提交人公司id");
+
+                entity.Property(e => e.SubmitterDept)
+                    .HasColumnName("submitter_dept")
+                    .HasComment("提交人部门id");
+
+                entity.Property(e => e.SubmitterPost)
+                    .HasColumnName("submitter_post")
+                    .HasComment("提交人岗位id");
+
+                entity.Property(e => e.Tile)
+                    .HasMaxLength(1000)
+                    .HasColumnName("tile")
+                    .HasComment("审批标题");
+            });
+
+            modelBuilder.Entity<ApprFlow>(entity =>
+            {
+                entity.ToTable("appr_flow");
+
+                entity.HasAnnotation("Relational:IsTableExcludedFromMigrations", false);
+
+                entity.Property(e => e.ApprFlowId)
+                    .HasColumnName("appr_flow_id")
+                    .HasComment("主键");
+
+                entity.Property(e => e.ApprFlowName)
+                    .HasMaxLength(300)
+                    .HasColumnName("appr_flow_name")
+                    .HasComment("审批流名称");
+
+                entity.Property(e => e.ApprTypeId)
+                    .HasColumnName("appr_type_id")
+                    .HasComment("审批类型");
+
+                entity.Property(e => e.CreationDate)
+                    .HasColumnType("datetime")
+                    .HasColumnName("creation_date")
+                    .HasComment("创建时间")
+                    .HasAnnotation("Relational:ColumnType", "datetime");
+
+                entity.Property(e => e.CreationUser)
+                    .HasColumnName("creation_user")
+                    .HasComment("创建人");
+
+                entity.Property(e => e.LastModifiedDate)
+                    .HasColumnType("datetime")
+                    .HasColumnName("last_modified_date")
+                    .HasComment("最后修改时间")
+                    .HasAnnotation("Relational:ColumnType", "datetime");
+
+                entity.Property(e => e.LastModifiedUser)
+                    .HasColumnName("last_modified_user")
+                    .HasComment("最后修改人");
+
+                entity.Property(e => e.Note)
+                    .HasMaxLength(300)
+                    .HasColumnName("note")
+                    .HasComment("备注");
+            });
+
+            modelBuilder.Entity<ApprTran>(entity =>
+            {
+                entity.HasKey(x => x.TranId)
+                    .HasName("PK__appr_tra__A67F8A20ADF49727");
+
+                entity.ToTable("appr_tran");
+
+                entity.HasAnnotation("Relational:IsTableExcludedFromMigrations", false);
+
+                entity.Property(e => e.TranId)
+                    .HasColumnName("tran_id")
+                    .HasComment("事务主键");
+
+                entity.Property(e => e.ApprId)
+                    .HasColumnName("appr_id")
+                    .HasComment("审批主键");
+
+                entity.Property(e => e.CreationDate)
+                    .HasColumnType("datetime")
+                    .HasColumnName("creation_date")
+                    .HasComment("创建时间")
+                    .HasAnnotation("Relational:ColumnType", "datetime");
+
+                entity.Property(e => e.CreationUser)
+                    .HasColumnName("creation_user")
+                    .HasComment("创建人");
+
+                entity.Property(e => e.LastModifiedDate)
+                    .HasColumnType("datetime")
+                    .HasColumnName("last_modified_date")
+                    .HasComment("最后修改时间")
+                    .HasAnnotation("Relational:ColumnType", "datetime");
+
+                entity.Property(e => e.LastModifiedUser)
+                    .HasColumnName("last_modified_user")
+                    .HasComment("最后修改人");
+
+                entity.Property(e => e.LastSubmitNodeId)
+                    .HasColumnName("last_submit_node_id")
+                    .HasComment("上一个提交节点id");
+
+                entity.Property(e => e.NextSubmitNodeId)
+                    .HasColumnName("next_submit_node_id")
+                    .HasComment("下一个节点id");
+
+                entity.Property(e => e.SubmissionTime)
+                    .HasColumnType("datetime")
+                    .HasColumnName("submission_time")
+                    .HasComment("提交时间")
+                    .HasAnnotation("Relational:ColumnType", "datetime");
+
+                entity.Property(e => e.SubmitNodeId)
+                    .HasColumnName("submit_node_id")
+                    .HasComment("提交节点id");
+
+                entity.Property(e => e.Submitter)
+                    .HasColumnName("submitter")
+                    .HasComment("提交人id");
+
+                entity.Property(e => e.SubmitterCorp)
+                    .HasColumnName("submitter_corp")
+                    .HasComment("提交人公司id");
+
+                entity.Property(e => e.SubmitterDept)
+                    .HasColumnName("submitter_dept")
+                    .HasComment("提交人部门id");
+
+                entity.Property(e => e.SubmitterNote)
+                    .HasColumnName("submitter_note")
+                    .HasComment("提交意见");
+
+                entity.Property(e => e.SubmitterPost)
+                    .HasColumnName("submitter_post")
+                    .HasComment("提交人岗位id");
+
+                entity.Property(e => e.TranNumber)
+                    .HasColumnName("tran_number")
+                    .HasComment("处理顺序（自动增长）");
+            });
+
+            modelBuilder.Entity<ApprType>(entity =>
+            {
+                entity.ToTable("appr_type");
+
+                entity.HasAnnotation("Relational:IsTableExcludedFromMigrations", false);
+
+                entity.Property(e => e.ApprTypeId)
+                    .HasColumnName("appr_type_id")
+                    .HasComment("主键");
+
+                entity.Property(e => e.ApprCancelStatus)
+                    .HasMaxLength(50)
+                    .HasColumnName("appr_cancel_status")
+                    .HasComment("数据表审批退回的状态");
+
+                entity.Property(e => e.ApprEndStatus)
+                    .HasMaxLength(50)
+                    .HasColumnName("appr_end_status")
+                    .HasComment("数据表审批通过的状态");
+
+                entity.Property(e => e.ApprStartStatus)
+                    .HasMaxLength(50)
+                    .HasColumnName("appr_start_status")
+                    .HasComment("数据表启动审批后的状态");
+
+                entity.Property(e => e.ApprTypeCode)
+                    .HasMaxLength(100)
+                    .HasColumnName("appr_type_code")
+                    .HasComment("类型代码");
+
+                entity.Property(e => e.ApprTypeName)
+                    .HasMaxLength(300)
+                    .HasColumnName("appr_type_name")
+                    .HasComment("类型名称");
+
+                entity.Property(e => e.CreationDate)
+                    .HasColumnType("datetime")
+                    .HasColumnName("creation_date")
+                    .HasComment("创建时间")
+                    .HasAnnotation("Relational:ColumnType", "datetime");
+
+                entity.Property(e => e.CreationUser)
+                    .HasColumnName("creation_user")
+                    .HasComment("创建人");
+
+                entity.Property(e => e.LastModifiedDate)
+                    .HasColumnType("datetime")
+                    .HasColumnName("last_modified_date")
+                    .HasComment("最后修改时间")
+                    .HasAnnotation("Relational:ColumnType", "datetime");
+
+                entity.Property(e => e.LastModifiedUser)
+                    .HasColumnName("last_modified_user")
+                    .HasComment("最后修改人");
+
+                entity.Property(e => e.PageViewUrl)
+                    .HasMaxLength(3000)
+                    .HasColumnName("page_view_url")
+                    .HasComment("审批默认查看界面：如审批节点中未填写，则取本字段");
+
+                entity.Property(e => e.Status)
+                    .HasMaxLength(50)
+                    .HasColumnName("status")
+                    .HasComment("状态：有效；无效");
+
+                entity.Property(e => e.TableApprIdName)
+                    .HasMaxLength(300)
+                    .HasColumnName("table_appr_id_name")
+                    .HasComment("数据表审批ID名称");
+
+                entity.Property(e => e.TableName)
+                    .HasMaxLength(300)
+                    .HasColumnName("table_name")
+                    .HasComment("数据表名称");
+
+                entity.Property(e => e.TablePkName)
+                    .HasMaxLength(100)
+                    .HasColumnName("table_pk_name")
+                    .HasComment("数据表主键名称");
+
+                entity.Property(e => e.TableStatusName)
+                    .HasMaxLength(300)
+                    .HasColumnName("table_status_name")
+                    .HasComment("数据表状态名称");
+
+                entity.Property(e => e.TransProcName)
+                    .HasMaxLength(300)
+                    .HasColumnName("trans_proc_name")
+                    .HasComment("审批通过后调用的存储过程（存储过程名称(参数)）");
+            });
+
+            modelBuilder.Entity<FlowLine>(entity =>
+            {
+                entity.HasKey(x => x.LineId)
+                    .HasName("PK__flow_lin__F5AE5F622CF06E9F");
+
+                entity.ToTable("flow_lines");
+
+                entity.HasAnnotation("Relational:IsTableExcludedFromMigrations", false);
+
+                entity.Property(e => e.LineId)
+                    .HasColumnName("line_id")
+                    .HasComment("主键");
+
+                entity.Property(e => e.ApprFlowId)
+                    .HasColumnName("appr_flow_id")
+                    .HasComment("审批流id");
+
+                entity.Property(e => e.CreationDate)
+                    .HasColumnType("datetime")
+                    .HasColumnName("creation_date")
+                    .HasComment("创建时间")
+                    .HasAnnotation("Relational:ColumnType", "datetime");
+
+                entity.Property(e => e.CreationUser)
+                    .HasColumnName("creation_user")
+                    .HasComment("创建人");
+
+                entity.Property(e => e.From)
+                    .HasMaxLength(300)
+                    .HasColumnName("from")
+                    .HasComment("连接起始节点代码");
+
+                entity.Property(e => e.LastModifiedDate)
+                    .HasColumnType("datetime")
+                    .HasColumnName("last_modified_date")
+                    .HasComment("最后修改时间")
+                    .HasAnnotation("Relational:ColumnType", "datetime");
+
+                entity.Property(e => e.LastModifiedUser)
+                    .HasColumnName("last_modified_user")
+                    .HasComment("最后修改人");
+
+                entity.Property(e => e.LineCode)
+                    .HasMaxLength(300)
+                    .HasColumnName("line_code")
+                    .HasComment("连接线代码");
+
+                entity.Property(e => e.LineName)
+                    .HasMaxLength(300)
+                    .HasColumnName("line_name")
+                    .HasComment("连接线名称");
+
+                entity.Property(e => e.Num)
+                    .HasColumnName("num")
+                    .HasComment("序列（用于区分连接线位置顺序）");
+
+                entity.Property(e => e.To)
+                    .HasMaxLength(300)
+                    .HasColumnName("to")
+                    .HasComment("连接末端节点代码");
+            });
+
+            modelBuilder.Entity<FlowLinePro>(entity =>
+            {
+                entity.HasKey(x => x.LineProId)
+                    .HasName("PK__flow_lin__D37404F08EE075A7");
+
+                entity.ToTable("flow_line_pro");
+
+                entity.HasAnnotation("Relational:IsTableExcludedFromMigrations", false);
+
+                entity.Property(e => e.LineProId)
+                    .HasColumnName("line_pro_id")
+                    .HasComment("主键");
+
+                entity.Property(e => e.CreationDate)
+                    .HasColumnType("datetime")
+                    .HasColumnName("creation_date")
+                    .HasComment("创建时间")
+                    .HasAnnotation("Relational:ColumnType", "datetime");
+
+                entity.Property(e => e.CreationUser)
+                    .HasColumnName("creation_user")
+                    .HasComment("创建人");
+
+                entity.Property(e => e.LastModifiedDate)
+                    .HasColumnType("datetime")
+                    .HasColumnName("last_modified_date")
+                    .HasComment("最后修改时间")
+                    .HasAnnotation("Relational:ColumnType", "datetime");
+
+                entity.Property(e => e.LastModifiedUser)
+                    .HasColumnName("last_modified_user")
+                    .HasComment("最后修改人");
+
+                entity.Property(e => e.LineId)
+                    .HasColumnName("line_id")
+                    .HasComment("连接线主键");
+
+                entity.Property(e => e.Sql)
+                    .HasColumnName("sql")
+                    .HasComment("连接线条件sql");
+            });
+
+            modelBuilder.Entity<FlowNode>(entity =>
+            {
+                entity.HasKey(x => x.NodeId)
+                    .HasName("PK__flow_nod__5F19EF16AABB5AB8");
+
+                entity.ToTable("flow_nodes");
+
+                entity.HasAnnotation("Relational:IsTableExcludedFromMigrations", false);
+
+                entity.Property(e => e.NodeId)
+                    .HasColumnName("node_id")
+                    .HasComment("主键");
+
+                entity.Property(e => e.ApprFlowId)
+                    .HasColumnName("appr_flow_id")
+                    .HasComment("审批流主键");
+
+                entity.Property(e => e.CreationDate)
+                    .HasColumnType("datetime")
+                    .HasColumnName("creation_date")
+                    .HasComment("创建时间")
+                    .HasAnnotation("Relational:ColumnType", "datetime");
+
+                entity.Property(e => e.CreationUser)
+                    .HasColumnName("creation_user")
+                    .HasComment("创建人");
+
+                entity.Property(e => e.Height)
+                    .HasColumnName("height")
+                    .HasComment("高");
+
+                entity.Property(e => e.LastModifiedDate)
+                    .HasColumnType("datetime")
+                    .HasColumnName("last_modified_date")
+                    .HasComment("最后修改时间")
+                    .HasAnnotation("Relational:ColumnType", "datetime");
+
+                entity.Property(e => e.LastModifiedUser)
+                    .HasColumnName("last_modified_user")
+                    .HasComment("最后修改人");
+
+                entity.Property(e => e.Left).HasColumnName("left");
+
+                entity.Property(e => e.NodeCode)
+                    .HasMaxLength(300)
+                    .HasColumnName("node_code")
+                    .HasComment("节点代码");
+
+                entity.Property(e => e.NodeName)
+                    .HasMaxLength(300)
+                    .HasColumnName("node_name")
+                    .HasComment("节点名称");
+
+                entity.Property(e => e.Num)
+                    .HasColumnName("num")
+                    .HasComment("序列（用于区分节点位置顺序）");
+
+                entity.Property(e => e.Top)
+                    .HasColumnName("top")
+                    .HasComment("上");
+
+                entity.Property(e => e.Type)
+                    .HasMaxLength(50)
+                    .HasColumnName("type")
+                    .HasComment("节点类型");
+
+                entity.Property(e => e.Width)
+                    .HasColumnName("width")
+                    .HasComment("宽");
+            });
+
+            modelBuilder.Entity<FlowNodePro>(entity =>
+            {
+                entity.HasKey(x => x.NodeProId)
+                    .HasName("PK__flow_nod__ADFBCA059DED63CE");
+
+                entity.ToTable("flow_node_pro");
+
+                entity.HasAnnotation("Relational:IsTableExcludedFromMigrations", false);
+
+                entity.Property(e => e.NodeProId)
+                    .HasColumnName("node_pro_id")
+                    .HasComment("主键");
+
+                entity.Property(e => e.ApprCorpId)
+                    .HasColumnName("appr_corp_id")
+                    .HasComment("审批人公司：如果审批人为空时，该字段不能为空");
+
+                entity.Property(e => e.ApprDeptId)
+                    .HasColumnName("appr_dept_id")
+                    .HasComment("审批人部门：部门为空：直接取整个公司");
+
+                entity.Property(e => e.ApprPostId)
+                    .HasColumnName("appr_post_id")
+                    .HasComment("审批人岗位：岗位为空，直接取整个部门");
+
+                entity.Property(e => e.ApprUserId)
+                    .HasColumnName("appr_user_id")
+                    .HasComment("节点审批人：如果为空，从所选择的公司、部门、岗位中全部罗列出来；如果不为空，把公司、部门、岗位一起填上");
+
+                entity.Property(e => e.CreationDate)
+                    .HasColumnType("datetime")
+                    .HasColumnName("creation_date")
+                    .HasComment("创建时间")
+                    .HasAnnotation("Relational:ColumnType", "datetime");
+
+                entity.Property(e => e.CreationUser)
+                    .HasColumnName("creation_user")
+                    .HasComment("创建人");
+
+                entity.Property(e => e.LastModifiedDate)
+                    .HasColumnType("datetime")
+                    .HasColumnName("last_modified_date")
+                    .HasComment("最后修改时间")
+                    .HasAnnotation("Relational:ColumnType", "datetime");
+
+                entity.Property(e => e.LastModifiedUser)
+                    .HasColumnName("last_modified_user")
+                    .HasComment("最后修改人");
+
+                entity.Property(e => e.NodeId)
+                    .HasColumnName("node_id")
+                    .HasComment("节点主键");
+
+                entity.Property(e => e.PageViewUrl)
+                    .HasMaxLength(3000)
+                    .HasColumnName("page_view_url")
+                    .HasComment("节点查看界面：当审批执行到该节点时，点击标题弹出界面的地址");
             });
 
             OnModelCreatingPartial(modelBuilder);

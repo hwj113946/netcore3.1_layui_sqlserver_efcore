@@ -1,0 +1,200 @@
+﻿
+@{
+    Layout = null;
+}
+<script src="~/js/jquery-3.2.1.min.js"></script>
+<link href="~/layui/css/layui.css" rel="stylesheet" />
+<script src="~/layui/layui.js"></script>
+
+<form style="text-align:center;" class="layui-form">
+    <br />
+    <div class="layui-form-item">
+        <div class="layui-inline">
+            <label class="layui-form-label"><span style="color:red;">*</span>类型代码</label>
+            <div class="layui-input-inline">
+                <input type="text" class="layui-input" lay-verify="required" id="ApprTypeCode" placeholder="请输入类型代码">
+            </div>
+            <label class="layui-form-label"><span style="color:red;">*</span>类型名称</label>
+            <div class="layui-input-inline">
+                <input type="text" class="layui-input" id="ApprTypeName" lay-verify="required" placeholder="请输入类型名称">
+            </div>
+        </div>
+    </div>
+    <div class="layui-form-item">
+        <div class="layui-inline">
+            <label class="layui-form-label"><span style="color:red;">*</span>数据表名称</label>
+            <div class="layui-input-inline">
+                <input type="text" class="layui-input" lay-verify="required" id="TableName" placeholder="请输入数据表名称">
+            </div>
+            <label class="layui-form-label"><span style="color:red;">*</span>数据表主键名称</label>
+            <div class="layui-input-inline">
+                <input type="text" class="layui-input" id="TablePkName" lay-verify="required" placeholder="请输入数据表主键名称">
+            </div>
+        </div>
+    </div>
+    <div class="layui-form-item">
+        <div class="layui-inline">
+            <label class="layui-form-label"><span style="color:red;">*</span>数据表状态名称</label>
+            <div class="layui-input-inline">
+                <input type="text" class="layui-input" lay-verify="required" id="TableStatusName" placeholder="请输入数据表状态名称">
+            </div>
+            <label class="layui-form-label"><span style="color:red;">*</span>数据表审批ID名称</label>
+            <div class="layui-input-inline">
+                <input type="text" class="layui-input" id="TableApprIdName" lay-verify="required" placeholder="请输入数据表审批ID名称">
+            </div>
+        </div>
+    </div>
+    <div class="layui-form-item">
+        <div class="layui-inline">
+            <label class="layui-form-label"><span style="color:red;">*</span>发起审批后的状态</label>
+            <div class="layui-input-inline">
+                <input type="text" class="layui-input" lay-verify="required" id="ApprStartStatus" placeholder="请输入发起审批后的状态">
+            </div>
+            <label class="layui-form-label"><span style="color:red;">*</span>审批通过后的状态</label>
+            <div class="layui-input-inline">
+                <input type="text" class="layui-input" id="ApprEndStatus" lay-verify="required" placeholder="请输入审批通过后的状态">
+            </div>
+        </div>
+    </div>
+    <div class="layui-form-item">
+        <div class="layui-inline">
+            <label class="layui-form-label"><span style="color:red;">*</span>审批退回后的状态</label>
+            <div class="layui-input-inline">
+                <input type="text" class="layui-input" lay-verify="required" id="ApprCancelStatus" placeholder="请输入审批退回后的状态">
+            </div>
+            <label class="layui-form-label"></label>
+            <div class="layui-input-inline">
+            </div>
+        </div>
+    </div>
+    <div class="layui-form-item  layui-form-text">
+        <label class="layui-form-label">审批默认查看界面地址</label>
+        <div class="layui-input-block">
+            <input type="text" class="layui-input" lay-verify="" id="PageViewUrl" placeholder="请输入审批默认查看界面地址">
+        </div>
+    </div>
+    <div class="layui-form-item  layui-form-text">
+        <label class="layui-form-label">审批通过后调用存储过程</label>
+        <div class="layui-input-block">
+            <input type="text" class="layui-input" lay-verify="" id="TransProcName" placeholder="请输入调用存储过程名称">
+        </div>
+    </div>
+    <div class="layui-form-item">
+        <div align="center">
+            <button class="layui-btn" lay-submit="" lay-filter="btnCommit">保存</button>
+            &nbsp;
+            <button class="layui-btn layui-btn-danger" onclick="btnClose()">关闭</button>
+        </div>
+    </div>
+</form>
+
+<script>
+    var layer, form;
+        layui.use(["layer", "form"], function () {
+            layer = layui.layer, form = layui.form;
+            form.render();
+            form.on("submit(btnCommit)", function (data) {
+                var ApprTypeCode = $("#ApprTypeCode").val();
+                var ApprTypeName = $("#ApprTypeName").val();
+                var TableName = $("#TableName").val();
+                var TablePkName = $("#TablePkName").val();
+                var TableStatusName = $("#TableStatusName").val();
+                var TableApprIdName = $("#TableApprIdName").val();
+                var ApprStartStatus = $("#ApprStartStatus").val();
+                var ApprEndStatus = $("#ApprEndStatus").val();
+                var ApprCancelStatus = $("#ApprCancelStatus").val();
+                var PageViewUrl = $("#PageViewUrl").val();
+                var TransProcName = $("#TransProcName").val();
+                var status = '@ViewBag.status';
+                var url = status == "add" ? '@Url.Action("InsertApprType","WorkFlow")' : '@Url.Action("ModifyApprType","WorkFlow")';
+                var data = status == "add" ?
+                    {
+                        ApprTypeCode: ApprTypeCode,
+                        ApprTypeName: ApprTypeName,
+                        TableName: TableName,
+                        TablePkName: TablePkName,
+                        TableStatusName: TableStatusName,
+                        TableApprIdName: TableApprIdName,
+                        ApprStartStatus: ApprStartStatus,
+                        ApprEndStatus: ApprEndStatus,
+                        ApprCancelStatus: ApprCancelStatus,
+                        PageViewUrl: PageViewUrl,
+                        TransProcName: TransProcName
+                    }
+                    :
+                    {
+                        ApprTypeCode: ApprTypeCode,
+                        ApprTypeName: ApprTypeName,
+                        TableName: TableName,
+                        TablePkName: TablePkName,
+                        TableStatusName: TableStatusName,
+                        TableApprIdName: TableApprIdName,
+                        ApprStartStatus: ApprStartStatus,
+                        ApprEndStatus: ApprEndStatus,
+                        ApprCancelStatus: ApprCancelStatus,
+                        PageViewUrl: PageViewUrl,
+                        TransProcName: TransProcName,
+                        ApprTypeId: '@ViewBag.ApprTypeId'
+                    };
+                $.ajax({
+                    type: 'post',
+                    dataType: 'json',
+                    url: url,
+                    data: data,
+                    success: function (res) {
+                        if (res.code == 200) {
+                            parent.layer.close(parent.layer.getFrameIndex(window.name));
+                            parent.layer.msg(res.msg, {
+                                icon: 6
+                            });
+                            parent.Refresh();
+                            return false;
+                        } else {
+                            layer.msg(res.msg, { icon: 5 });
+                            return false;
+                        }
+                    },
+                    error: function () {
+                        layer.msg("接口出错，请联系管理员", { icon: 5 });
+                        return false;
+                    }
+                });
+                return false;
+            });
+        });
+        function btnClose() {
+            var index = parent.layer.getFrameIndex(window.name);
+            parent.layer.close(index);
+        }
+
+    $(document).ready(function () {
+        if ('@ViewBag.status' == 'add') {
+            return;
+        }
+        $.ajax({
+            type: 'get',
+            dataType: 'json',
+            url: '@Url.Action("GetApprTypeById","WorkFlow")',
+            data: { ApprTypeId: '@ViewBag.ApprTypeId' },
+            success: function (res) {
+                if (res.code == 0) {
+                    $("#ApprTypeCode").val(res.data.ApprTypeCode);
+                    $("#ApprTypeName").val(res.data.ApprTypeName);
+                    $("#TableName").val(res.data.TableName);
+                    $("#TablePkName").val(res.data.TablePkName);
+                    $("#TableStatusName").val(res.data.TableStatusName);
+                    $("#TableApprIdName").val(res.data.TableApprIdName);
+                    $("#ApprStartStatus").val(res.data.ApprStartStatus);
+                    $("#ApprEndStatus").val(res.data.ApprEndStatus);
+                    $("#ApprCancelStatus").val(res.data.ApprCancelStatus);
+                    $("#PageViewUrl").val(res.data.PageViewUrl);
+                    $("#TransProcName").val(res.data.TransProcName);
+                } else {
+                    layer.msg(res.msg, { icon: 5 });
+                }
+            }, error: function (res) {
+                layer.msg("接口出错，请联系管理员", { icon: 5 });
+            }
+        });
+    });
+</script>

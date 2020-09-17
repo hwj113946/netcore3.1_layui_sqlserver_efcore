@@ -212,7 +212,7 @@ namespace netcore.Controllers.Menu
                 foreach (var item in entitys)
                 {
                     string strJson = item.ToJson();
-                    strJson = strJson.Insert(strJson.Length - 1, ",\"ChildNodes\":" + ToMenuJson(data, item.MenuId) + "");
+                    strJson = strJson.Insert(strJson.Length - 1, ",\"children\":" + ToMenuJson(data, item.MenuId) + "");
                     sbJson.Append(strJson + ",");
                 }
                 sbJson = sbJson.Remove(sbJson.Length - 1, 1);

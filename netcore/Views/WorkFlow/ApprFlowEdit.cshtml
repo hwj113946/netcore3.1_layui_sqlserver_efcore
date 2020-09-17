@@ -1,25 +1,22 @@
-﻿@{
+﻿
+@{
     Layout = null;
 }
-
 <script src="~/js/jquery-3.2.1.min.js"></script>
-<script src="~/layui/layui.js"></script>
 <link href="~/layui/css/layui.css" rel="stylesheet" />
+<script src="~/layui/layui.js"></script>
+
 <form style="text-align:center;" class="layui-form">
     <br />
     <div class="layui-form-item">
         <div class="layui-inline">
-            <label class="layui-form-label"><span style="color:red;">*</span>所属公司</label>
+            <label class="layui-form-label"><span style="color:red;">*</span>审批流类型</label>
             <div class="layui-input-inline">
-                <select name="Corp" id="corpSelect" lay-verify="required" lay-filter="corpSelect" lay-search></select>
+                <select name="Type" id="typeSelect" lay-verify="" lay-filter="typeSelect" lay-search></select>
             </div>
-            <label class="layui-form-label"><span style="color:red;">*</span>部门代码</label>
+            <label class="layui-form-label"><span style="color:red;">*</span>审批流名称</label>
             <div class="layui-input-inline">
-                <input type="text" class="layui-input" lay-verify="required" id="DeptCode" placeholder="请输入部门代码">
-            </div>
-            <label class="layui-form-label"><span style="color:red;">*</span>部门名称</label>
-            <div class="layui-input-inline">
-                <input type="text" class="layui-input" id="DeptName" lay-verify="required" placeholder="请输入部门名称">
+                <input type="text" class="layui-input" id="ApprFlowName" lay-verify="required" placeholder="请输入审批流名称">
             </div>
         </div>
     </div>
@@ -37,16 +34,17 @@
         </div>
     </div>
 </form>
+
 <script>
-    function GetCorp(form) {
+    function GetApprType(form) {
         $.ajax({
             type: 'get',
             dataType: 'json',
-            url: '@Url.Action("GetCorp", "Public")',
+            url: '@Url.Action("GetApprType", "WorkFlow")',
             success: function (res) {
                 if (res.code == 0) {
                     $.each(res.data, function (index, item) {
-                        $('#corpSelect').append('<option value="' + item.CorpId + '">' + item.CorpName + '</option>');
+                        $('#typeSelect').append('<option value="' + item.ApprTypeId + '">' + item.ApprTypeName + '</option>');
                     });
                     form.render('select');
                 } else {
@@ -62,35 +60,29 @@
             }
         });
     }
-
     var layer, form;
     layui.use(["layer", "form"], function () {
         layer = layui.layer, form = layui.form;
         form.render();
-        GetCorp(form);
+        GetApprType(form);
         form.on("submit(btnCommit)", function (data) {
-            var CorpId = $('select[name="Corp"] option:selected').val();
-            var DeptCode = $("#DeptCode").val();
-            var DeptName = $("#DeptName").val();
+            var ApprTypeId = $('select[name="Type"] option:selected').val();
+            var ApprFlowName = $("#ApprFlowName").val();
             var Note = $("#Note").val();
             var status = '@ViewBag.status';
-            var url = status == "add" ? '@Url.Action("Insert","AppDept")' : '@Url.Action("Modify", "AppDept")';
+            var url = status == "add" ? '@Url.Action("InsertApprFlow","WorkFlow")' : '@Url.Action("ModifyApprFlow","WorkFlow")';
             var data = status == "add" ?
                 {
-                    CorpId: CorpId
-                    , CorpId: CorpId
-                    , DeptCode: DeptCode
-                    , DeptName: DeptName
-                    , Note: Note
+                    ApprTypeId: ApprTypeId,
+                    Note: Note,
+                    ApprFlowName: ApprFlowName,
                 }
                 :
                 {
-                    DeptId: '@ViewBag.DeptId'
-                    , CorpId: CorpId
-                    , DeptCode: DeptCode
-                    , DeptName: DeptName
-                    , Note: Note
-
+                    ApprTypeId: ApprTypeId,
+                    Note: Note,
+                    ApprFlowName: ApprFlowName,
+                    ApprFlowId: '@ViewBag.ApprFlowId'
                 };
             $.ajax({
                 type: 'post',
@@ -118,26 +110,28 @@
             return false;
         });
     });
-
     function btnClose() {
         var index = parent.layer.getFrameIndex(window.name);
         parent.layer.close(index);
     }
 
     $(document).ready(function () {
-        if ('@ViewBag.status' == "add") { return; }
+        if ('@ViewBag.status' == 'add') {
+            return;
+        }
         $.ajax({
             type: 'get',
             dataType: 'json',
-            url: '@Url.Action("GetById", "AppDept")',
-            data: { DeptId: '@ViewBag.DeptId' },
+            url: '@Url.Action("GetApprFlowById","WorkFlow")',
+            data: { ApprFlowId: '@ViewBag.ApprFlowId' },
             success: function (res) {
                 if (res.code == 0) {
-                    $("#DeptCode").val(res.data.DeptCode);
-                    $("#DeptName").val(res.data.DeptName);
+                    $("#typeSelect option[value='" + res.data.ApprTypeId + "']").prop("selected", true);
+                    $("#ApprFlowName").val(res.data.ApprFlowName);
                     $("#Note").val(res.data.Note);
-                    $("#corpSelect option[value='" + res.data.CorpId + "']").prop("selected", true);
                     form.render('select');
+                } else {
+                    layer.msg(res.msg, { icon: 5 });
                 }
             }, error: function (res) {
                 layer.msg("接口出错，请联系管理员", { icon: 5 });

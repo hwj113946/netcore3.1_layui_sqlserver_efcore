@@ -1,0 +1,184 @@
+﻿@{
+    Layout = null;
+}
+<script src="~/js/jquery-3.2.1.min.js"></script>
+<script src="~/layui/layui.js"></script>
+<link href="~/layui/css/layui.css" rel="stylesheet" />
+<script type="text/html" id="toolbar">
+    <div class="layui-btn-container">
+        <a class="layui-btn layui-btn-sm layui-btn-primary" onclick="Refresh()">查询</a>
+        <a class="layui-btn layui-btn-sm layui-btn-primary" onclick="btnAdd()">新增</a>
+        <a id="btnEdit" class="layui-btn layui-btn-sm layui-btn-primary" onclick="btnEdit()">编辑</a>
+        <a id="btnDelete" class="layui-btn layui-btn-sm layui-btn-primary" onclick="btnDel()">删除</a>
+        <a id="btnDelete" class="layui-btn layui-btn-sm layui-btn-primary" onclick="btnFlowSetting()">流程设置</a>
+    </div>
+</script>
+<form class="layui-form">
+    <br />
+    <div class="layui-inline"></div>
+    <div class="layui-inline">
+        <div class="layui-input-inline">
+            <select name="Type" id="typeSelect" lay-verify="" lay-filter="typeSelect" lay-search></select>
+        </div>
+        <div class="layui-input-inline">
+            <input type="text" id="ApprFlowName" lay-verify="" placeholder="审批流名称" class="layui-input" />
+        </div>
+    </div>
+    <table id="table1" lay-filter="table1"></table>
+</form>
+
+<script>
+    function GetApprType(form) {
+        $.ajax({
+            type: 'get',
+            dataType: 'json',
+            url: '@Url.Action("GetApprType", "WorkFlow")',
+            success: function (res) {
+                if (res.code == 0) {
+                    $('#typeSelect').append('<option value="-99">全部</option>');
+                    $.each(res.data, function (index, item) {
+                        $('#typeSelect').append('<option value="' + item.ApprTypeId + '">' + item.ApprTypeName + '</option>');
+                    });
+                    $("#typeSelect").val('-99');
+                    form.render('select');
+                } else {
+                    layer.msg(res.msg, {
+                        icon: 5
+                    });
+                }
+            },
+            error: function (res) {
+                layer.msg("加载公司信息出错，请联系管理员", {
+                    icon: 5
+                });
+            }
+        });
+    }
+    var table, ins, layer, form;
+    layui.use(['table', 'form', 'upload'], function () {
+        table = layui.table, layer = layui.layer, form = layui.form;
+        form.render();
+        GetApprType(form);
+        ins = table.render({
+            elem: '#table1',
+            toolbar: '#toolbar'
+            , defaultToolbar: ['filter']
+            , cellMinWidth: 120
+            , height: document.documentElement.clientHeight - 80
+            , url: '@Url.Action("GetApprFlowList", "WorkFlow")',
+            where: {
+                ApprTypeId: '-99',
+                ApprFlowName: ''
+            }, method: 'get'
+            , page: true //开启分页
+            , limit: 20
+            , limits: [20, 50, 100]
+            , cols: [[ //表头
+                { type: 'checkbox', fixed: 'left' }
+                , { field: 'ApprFlowId', title: '审批流ID', hide: true }
+                , { field: 'ApprTypeName', title: '类型名称', width: 180, sort: true }
+                , { field: 'ApprFlowName', title: '审批流名称', width: 180, sort: true }
+                , { field: 'Note', title: '描述', sort: true }
+            ]], loading: true,
+            done: function () {
+
+            }
+        });
+    });
+
+    function Refresh() {
+        table.reload("table1", {
+            url: '@Url.Action("GetApprFlowList", "WorkFlow")',
+            where: {
+                ApprTypeId: $('select[name="Type"] option:selected').val(),
+                ApprFlowName: $("#ApprFlowName").val()
+            }, method: "get",
+            page: {
+                curr: 1
+            }
+        });
+    }
+    //新增
+    function btnAdd() {
+        layer.open({
+            type: 2,
+            area: ["750px", "350px"],
+            title: "新增 - 审批流",
+            content: '@Url.Action("ApprFlowEdit", "WorkFlow")' + '?status=add&Rowid='
+        });
+    }
+    //编辑
+    function btnEdit() {
+        var checkStatus = table.checkStatus('table1');
+        if (checkStatus.data.length > 0) {
+            if (checkStatus.data.length > 1) {
+                layer.msg("编辑只能勾选一行数据", { icon: 5 }); return;
+            }
+            layer.open({
+                type: 2,
+                area: ["750px", "350px"],
+                title: "编辑 - 审批流",
+                content: '@Url.Action("ApprFlowEdit", "WorkFlow")' + '?status=update&Rowid=' + checkStatus.data[0].ApprFlowId
+            });
+        } else {
+            layer.msg('请先勾选数据', {
+                icon: 5
+            });
+        }
+    }
+    //删除
+    function btnDel() {
+        var checkStatus = table.checkStatus('table1');
+        if (checkStatus.data.length > 0) {
+            var obj = [];
+            layer.confirm('删除会影响当前正在审批的数据，是否删除？', { btn: ['是', '否'], icon: 3, title: '提示' }, function (index) {
+                for (var i = 0; i < checkStatus.data.length; i++) {
+                        obj.push(checkStatus.data[i].ApprFlowId);
+                }
+                $.ajax({
+                    type: 'post',
+                    dataType: 'json',
+                    traditional: true,
+                    url: '@Url.Action("DeleteApprFlow", "WorkFlow")',
+                    data: {
+                        id: obj
+                    },
+                    success: function (res) {
+                        if (res.code == 200) {
+                            layer.msg(res.msg, { icon: 6 });
+                            Refresh();
+                        } else {
+                            layer.msg(res.msg, { icon: 5 });
+                        }
+                    },
+                    error: function () {
+                        layer.msg("接口出错，请联系管理员", { icon: 5 });
+                    }
+                });
+            });
+        } else {
+            layer.msg('请先勾选数据', {
+                icon: 5
+            });
+        }
+    }
+    //流程设置
+    function btnFlowSetting() {
+        var checkStatus = table.checkStatus('table1');
+        if (checkStatus.data.length > 0) {
+            if (checkStatus.data.length > 1) {
+                layer.msg("流程设置只能勾选一行数据", { icon: 5 }); return;
+            }
+            layer.open({
+                type: 2,
+                area: ["100%", "100%"],
+                title: "流程设置 - 审批流",
+                content: '@Url.Action("ApprFlowSetting", "WorkFlow")' + '?Rowid=' + checkStatus.data[0].ApprFlowId
+            });
+        } else {
+            layer.msg('请先勾选数据', {
+                icon: 5
+            });
+        }
+    }
+</script>
