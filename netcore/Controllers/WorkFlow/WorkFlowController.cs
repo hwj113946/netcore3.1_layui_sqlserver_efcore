@@ -437,7 +437,7 @@ namespace netcore.Controllers.WorkFlow
         [CheckCustomer]
         public IActionResult ApprFlowSetting()
         {
-            ViewBag.ApprFlowId = HttpContext.Request.Query["Rowid"].ToString()??"";
+            ViewBag.FlowId = HttpContext.Request.Query["Rowid"].ToString()??"";
             return View();
         }
 
@@ -633,6 +633,218 @@ namespace netcore.Controllers.WorkFlow
             catch (Exception ex)
             {
                 logger.LogInformation(HttpContext.Session.GetString("who") + "删除审批流失败。" + ex.Message);
+                return Json(new { code = 300, msg = "删除失败" });
+            }
+        }
+        #endregion
+
+        #endregion
+
+        #region 连接线属性
+        [CheckCustomer]
+        public IActionResult WorkFlowLineUpdate()
+        {
+            ViewBag.FlowId = HttpContext.Request.Query["flowid"];
+            ViewBag.LineCode = HttpContext.Request.Query["line_code"];
+            return View();
+        }
+
+        #region 获取列
+        [HttpGet]
+        public async Task<IActionResult> GetColName(int FlowId)
+        {
+            try
+            {
+                var Table = await (from t in context.ApprTypes
+                                   join f in context.ApprFlows
+                                   on t.ApprTypeId equals f.ApprTypeId
+                                   where f.ApprFlowId.Equals(FlowId)
+                                   select new
+                                   {
+                                       t.TableName
+                                   }).SingleOrDefaultAsync();
+                var sql = @"SELECT 
+                             a.name as ColName,
+                           Isnull(g.[value], '') as Comments
+                    FROM   syscolumns a
+                           LEFT JOIN systypes b
+                                  ON a.xusertype = b.xusertype
+                           INNER JOIN sysobjects d
+                                   ON a.id = d.id
+                                      AND d.xtype = 'U'
+                                      AND d.name <> 'dtproperties'
+                           LEFT JOIN syscomments e
+                                  ON a.cdefault = e.id
+                           LEFT JOIN sys.extended_properties g
+                                  ON a.id = g.major_id
+                                     AND a.colid = g.minor_id
+                           LEFT JOIN sys.extended_properties f
+                                  ON d.id = f.major_id
+                                     AND f.minor_id = 0
+                    WHERE  d.name = @tableName
+                    ORDER  BY  a.colorder ";
+                var table = context.Database.SqlQuery(sql, new object[] { new SqlParameter("@tableName", Table.TableName) });
+                return Json(new { code = 0, msg = "查询成功", count = table.Rows.Count, data = ("[" + JsonTools.DataTableToJson(table) + "]").ToJson() });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { code = 1, msg = "查询失败，请联系管理员", count = 0, data = new { } });
+            }
+        }
+        #endregion
+
+        #region 获取连接线属性
+        [HttpGet]
+        public async Task<IActionResult> GetLineProList(int FlowId,string LineCode,int page,int limit)
+        {
+            try
+            {
+                var list = await context.FlowLinePros.Where(u => u.FlowId == FlowId && u.LineCode == LineCode).ToListAsync();
+                decimal count = 0;
+                if (list.Count>0)
+                {
+                    count = Math.Ceiling(Convert.ToDecimal(list.Count) / Convert.ToDecimal(limit));
+                    if (page > count)
+                    {
+                        return Json(new { code = 1, msg = "没有更多数据了。", count = Convert.ToInt32(count), data = new { } });
+                    }
+                    list = list.Skip((page - 1) * limit).Take(limit).ToList();
+                }
+                else
+                {
+                    return Json(new { code = 1, msg = "暂无数据", data = new { } });
+                }
+                return Json(new { code = 0, msg = "查询成功", data = list });
+            }
+            catch (Exception ex)
+            {
+                logger.LogInformation(HttpContext.Session.GetString("who") + "获取连接线属性出错。" + ex.Message);
+                return Json(new { code = 1, msg = "查询出错，请联系管理员", data = new { } });
+            }
+        }
+        #endregion
+
+        #region 新增连接线属性
+        [HttpPost]
+        public async Task<IActionResult> InsertLinePro(int FlowId, string LineCode, string Type, string Value,
+            string ColIf, string ColName)
+        {
+            try
+            {
+                var values = "";
+                var sql1 = "";
+                switch (Type)
+                {
+                    case "数字": values = Value; break;
+                    case "文本": values = " '" + Value + "'"; break;
+                    case "日期(yyyy-MM-dd)": values = " CONVERT(varchar(10),'" + Value + "',120)"; break;
+                }
+                switch (ColIf)
+                {
+                    case "like ": sql1 = ColName + " " + ColIf + " %" + values + "% "; break;
+                    case "not like ": sql1 = ColName + " " + ColIf + " %" + values + "% "; break;
+                    default: sql1 = ColName + " " + ColIf + " " + values; break;
+                }
+                await context.FlowLinePros.AddAsync(new FlowLinePro()
+                {
+                    FlowId = FlowId,
+                    LineCode = LineCode ?? "",
+                    Sql = sql1 ?? "",
+                    CreationDate = DateTime.Now,
+                    CreationUser = HttpContext.Session.GetInt32("user_id")
+                });
+                await context.SaveChangesAsync();
+                logger.LogInformation(HttpContext.Session.GetString("who") + "新增连接线属性成功。");
+                return Json(new { code = 200, msg = "新增成功" });
+            }
+            catch (Exception ex)
+            {
+                logger.LogInformation(HttpContext.Session.GetString("who") + "新增连接线属性失败。" + ex.Message);
+                return Json(new { code = 300, msg = "新增失败" });
+            }
+        }
+        #endregion
+
+        #region 新增连接线属性
+        [HttpPost]
+        public async Task<IActionResult> InsertLineProSql(int FlowId, string LineCode, string sqls)
+        {
+            try
+            {
+                await context.FlowLinePros.AddAsync(new FlowLinePro()
+                {
+                    FlowId = FlowId,
+                    LineCode = LineCode ?? "",
+                    Sql = sqls ?? "",
+                    CreationDate = DateTime.Now,
+                    CreationUser = HttpContext.Session.GetInt32("user_id")
+                });
+                await context.SaveChangesAsync();
+                logger.LogInformation(HttpContext.Session.GetString("who") + "新增连接线属性成功。");
+                return Json(new { code = 200, msg = "新增成功" });
+            }
+            catch (Exception ex)
+            {
+                logger.LogInformation(HttpContext.Session.GetString("who") + "新增连接线属性失败。" + ex.Message);
+                return Json(new { code = 300, msg = "新增失败" });
+            }
+        }
+        #endregion
+
+        #region 编辑连接线属性
+        [HttpPost]
+        public async Task<IActionResult> ModifyLinePro(int ProId, string sqls)
+        {
+            try
+            {
+                var modify = await context.FlowLinePros.SingleOrDefaultAsync(u => u.LineProId == ProId);
+                if (modify != null)
+                {
+
+                    modify.Sql = sqls ?? "";
+                    modify.LastModifiedDate = DateTime.Now;
+                    modify.LastModifiedUser = HttpContext.Session.GetInt32("user_id");
+                    context.FlowLinePros.Update(modify);
+                    await context.SaveChangesAsync();
+                    logger.LogInformation(HttpContext.Session.GetString("who") + "编辑连接线属性成功。");
+                    return Json(new { code = 200, msg = "编辑成功" });
+                }
+                else
+                {
+                    return Json(new { code = 300, msg = "该连接线属性不存在" });
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.LogInformation(HttpContext.Session.GetString("who") + "编辑连接线属性失败。" + ex.Message);
+                return Json(new { code = 300, msg = "编辑失败" });
+            }
+        }
+        #endregion
+
+        #region 删除连接线属性
+        [HttpPost]
+        public async Task<IActionResult> DeleteLinePro(int id)
+        {
+            try
+            {
+                var single = await context.FlowLinePros.SingleOrDefaultAsync(u => u.LineProId == id);
+                if (single != null)
+                {
+                    context.FlowLinePros.Remove(single);
+                    await context.SaveChangesAsync();
+                    logger.LogInformation(HttpContext.Session.GetString("who") + "删除连接线属性成功。");
+                    return Json(new { code = 200, msg = "删除成功" });
+                }
+                else
+                {
+                    logger.LogInformation(HttpContext.Session.GetString("who") + "删除连接线属性失败：连接线属性不存在或未勾选数据。");
+                    return Json(new { code = 300, msg = "连接线属性不存在或未勾选数据" });
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.LogInformation(HttpContext.Session.GetString("who") + "删除连接线属性失败。" + ex.Message);
                 return Json(new { code = 300, msg = "删除失败" });
             }
         }

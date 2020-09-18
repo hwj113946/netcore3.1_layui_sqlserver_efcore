@@ -9,6 +9,7 @@ namespace netcore.Models
     {
         public int LineId { get; set; }
         public int? ApprFlowId { get; set; }
+        public string Type { get; set; }
         public string LineCode { get; set; }
         public string LineName { get; set; }
         public int? Num { get; set; }

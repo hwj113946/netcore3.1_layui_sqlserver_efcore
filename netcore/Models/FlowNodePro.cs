@@ -8,7 +8,8 @@ namespace netcore.Models
     public partial class FlowNodePro
     {
         public int NodeProId { get; set; }
-        public int? NodeId { get; set; }
+        public int? FlowId { get; set; }
+        public string NodeCode { get; set; }
         public string PageViewUrl { get; set; }
         public int? ApprUserId { get; set; }
         public int? ApprCorpId { get; set; }

@@ -1040,6 +1040,11 @@ namespace netcore.Models
                     .HasMaxLength(300)
                     .HasColumnName("to")
                     .HasComment("连接末端节点代码");
+
+                entity.Property(e => e.Type)
+                    .HasMaxLength(50)
+                    .HasColumnName("type")
+                    .HasComment("类型");
             });
 
             modelBuilder.Entity<FlowLinePro>(entity =>
@@ -1065,6 +1070,10 @@ namespace netcore.Models
                     .HasColumnName("creation_user")
                     .HasComment("创建人");
 
+                entity.Property(e => e.FlowId)
+                    .HasColumnName("flow_id")
+                    .HasComment("审批流主键");
+
                 entity.Property(e => e.LastModifiedDate)
                     .HasColumnType("datetime")
                     .HasColumnName("last_modified_date")
@@ -1075,9 +1084,10 @@ namespace netcore.Models
                     .HasColumnName("last_modified_user")
                     .HasComment("最后修改人");
 
-                entity.Property(e => e.LineId)
-                    .HasColumnName("line_id")
-                    .HasComment("连接线主键");
+                entity.Property(e => e.LineCode)
+                    .HasMaxLength(300)
+                    .HasColumnName("line_code")
+                    .HasComment("连接线代码");
 
                 entity.Property(e => e.Sql)
                     .HasColumnName("sql")
@@ -1194,6 +1204,10 @@ namespace netcore.Models
                     .HasColumnName("creation_user")
                     .HasComment("创建人");
 
+                entity.Property(e => e.FlowId)
+                    .HasColumnName("flow_id")
+                    .HasComment("审批流主键");
+
                 entity.Property(e => e.LastModifiedDate)
                     .HasColumnType("datetime")
                     .HasColumnName("last_modified_date")
@@ -1204,9 +1218,10 @@ namespace netcore.Models
                     .HasColumnName("last_modified_user")
                     .HasComment("最后修改人");
 
-                entity.Property(e => e.NodeId)
-                    .HasColumnName("node_id")
-                    .HasComment("节点主键");
+                entity.Property(e => e.NodeCode)
+                    .HasMaxLength(300)
+                    .HasColumnName("node_code")
+                    .HasComment("节点代码");
 
                 entity.Property(e => e.PageViewUrl)
                     .HasMaxLength(3000)
