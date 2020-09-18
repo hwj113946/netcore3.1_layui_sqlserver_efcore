@@ -965,7 +965,7 @@ namespace netcore.Controllers.WorkFlow
         public async Task<IActionResult> GetNodePro(int FlowId,string NodeCode)
         {
             var single = await context.FlowNodePros.SingleOrDefaultAsync(u => u.FlowId == FlowId && u.NodeCode == NodeCode);
-            return Json(new { code = single == null ? 1 : 0, msg = single == null ? "查询不到该节点属性信息" : "查询成功", count = single == null ? 0 : 1, data = single });
+            return Json(new { code = single == null ? 0 : 0, msg = single == null ? "查询不到该节点属性信息" : "查询成功", count = single == null ? 0 : 1, data = single });
         }
         #endregion
 
