@@ -194,15 +194,15 @@
             var PageViewUrl = $("#PageViewUrl").val();
             var ApprUserId = document.getElementById("ApprUserId").title;
             var data =
-                {
-                    FlowId: '@ViewBag.FlowId',
-                    NodeCode: '@ViewBag.NodeCode',
-                    PageViewUrl: PageViewUrl,
-                    ApprUserId: ApprUserId,
-                    ApprCorpId: $('select[name="Corp"] option:selected').val(),
-                    ApprDeptId: $('select[name="Dept"] option:selected').val(),
-                    ApprPostId: xm.getValue('valueStr')
-                };
+            {
+                FlowId: '@ViewBag.FlowId',
+                NodeCode: '@ViewBag.NodeCode',
+                PageViewUrl: PageViewUrl,
+                ApprUserId: ApprUserId,
+                ApprCorpId: $('select[name="Corp"] option:selected').val(),
+                ApprDeptId: $('select[name="Dept"] option:selected').val(),
+                ApprPostId: xm.getValue('valueStr')
+            };
             $.ajax({
                 type: 'post',
                 dataType: 'json',
