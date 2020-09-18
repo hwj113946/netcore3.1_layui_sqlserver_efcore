@@ -152,11 +152,11 @@
         </div>
         <div class="form_btn_div">
             <input type="button" value="节点/条件设置" class="layui-btn layui-btn-sm" onclick="show_setting(demo.$focus)" />
-            <input type="button" value="保存属性设置" onclick="SaveSetting(demo.$focus)" class="layui-btn layui-btn-sm " />
+            <input type="button" value="名称保存设置" onclick="SaveSetting(demo.$focus)" class="layui-btn layui-btn-sm " />
             <div style="clear:both;">
                 <br />
                 <input id="submit" type="button" value='导出流程图Json结果' onclick="Export()" class="layui-btn layui-btn-sm " />
-                <textarea id="result" row="6" class="layui-textarea" readonly="readonly"></textarea>
+                <textarea id="result" class="layui-textarea" readonly="readonly"></textarea>
             </div>
         </div>
     </form>
@@ -262,16 +262,14 @@
     function Save() {
         document.getElementById("result").value = JSON.stringify(demo.exportData());
         jsondata = JSON.stringify(demo.exportData());
-        var datas = { flowid: '@ViewBag.flowid', json: jsondata };
         $.ajax({
             type: 'post',
             dataType: 'json',
             url: '@Url.Action("SaveWorkFlow", "WorkFlow")',
-            data: datas,
+            data: { FlowId: '@ViewBag.FlowId', JsonData: jsondata },
             success: function (res) {
                 if (res.code == 200) {
-                    layer.msg(res,msg, { icon: 6 });
-                    //window.location.reload();
+                    layer.msg(res.msg, { icon: 6 });
                     Refresh();
                 } else {
                     layer.msg(res.msg, {
@@ -315,7 +313,7 @@
         }
         layer.open({
             type: 2,
-            area: ['800px', '500px'],
+            area: ['800px', '90%'],
             title: title,
             content: url
         });
@@ -326,25 +324,23 @@
             layer.msg("请选中节点或线", { icon: 5 }); return;
         }
         var url;
-        var datas = {};
         var LineOrNode = $("#ele_model").val() == null ? "" : $("#ele_model").val();
         if (LineOrNode == "line") {
             url = '@Url.Action("WorkFlowLineUpdate","WorkFlow")';
-            datas = {};
         } else if (LineOrNode == "node") {
             url = '@Url.Action("WorkFlowNodeUpdate","WorkFlow")';
         }
-        datas = { code: ($("#ele_id").val() == null ? "" : $("#ele_id").val()), name: ($("#ele_name").val() == null ? "" : $("#ele_name").val()) };
         $.ajax({
             type: 'post',
             dataType: 'json',
             url: url,
-            data: datas,
+            data: {
+                Code: $("#ele_id").val(), Name: $("#ele_name").val()
+            },
             success: function (res) {
                 if (res.code == 200) {
                     layer.msg(res.msg, { icon: 6 });
                     Refresh();
-                    //window.location.reload();
                 } else {
                     layer.msg(res.msg, {
                         icon: 5

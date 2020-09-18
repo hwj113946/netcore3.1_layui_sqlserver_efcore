@@ -12,6 +12,7 @@ using Helper;
 using netcore_ef.Models;
 using Microsoft.Data.SqlClient;
 using NPOI.HSSF.Record.Chart;
+using Newtonsoft.Json.Linq;
 
 namespace netcore.Controllers.WorkFlow
 {
@@ -693,6 +694,37 @@ namespace netcore.Controllers.WorkFlow
         }
         #endregion
 
+        #region 连接线名称更改
+        [HttpPost]
+        public async Task<IActionResult> WorkFlowLineUpdate(string Code, string Name)
+        {
+            try
+            {
+                var modify = await context.FlowLines.SingleOrDefaultAsync(u => u.LineCode == Code);
+                if (modify != null)
+                {
+                    modify.LineName = Name ?? "";
+                    modify.LastModifiedDate = DateTime.Now;
+                    modify.LastModifiedUser = HttpContext.Session.GetInt32("user_id");
+                    context.FlowLines.Update(modify);
+                    await context.SaveChangesAsync();
+                    logger.LogInformation(HttpContext.Session.GetString("who") + "保存连接线名称成功。");
+                    return Json(new { code = 200, msg = "保存成功" });
+                }
+                else
+                {
+                    logger.LogInformation(HttpContext.Session.GetString("who") + "保存连接线名称失败,节点不存在。");
+                    return Json(new { code = 300, msg = "连接线不存在" });
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.LogInformation(HttpContext.Session.GetString("who") + "保存连接线失败。" + ex.Message);
+                return Json(new { code = 300, msg = "保存失败" });
+            }
+        }
+        #endregion
+
         #region 获取连接线属性
         [HttpGet]
         public async Task<IActionResult> GetLineProList(int FlowId,string LineCode,int page,int limit)
@@ -851,5 +883,386 @@ namespace netcore.Controllers.WorkFlow
         #endregion
 
         #endregion
+
+        #region 节点属性
+        [CheckCustomer]
+        public IActionResult WorkFlowNodeUpdate()
+        {
+            ViewBag.FlowId = HttpContext.Request.Query["flowid"];
+            ViewBag.NodeCode = HttpContext.Request.Query["node_code"];
+            ViewBag.NodeName = HttpContext.Request.Query["node_name"];
+            return View();
+        }
+
+        [CheckCustomer]
+        public IActionResult ChooseApprUser()
+        {
+            ViewBag.CorpId = HttpContext.Session.GetInt32("CorpId");
+            ViewBag.DeptId = HttpContext.Session.GetInt32("DeptId");
+            ViewBag.PostId = HttpContext.Session.GetInt32("PostId");
+            return View();
+        }
+
+        #region 获取用户
+        [HttpGet]
+        public async Task<IActionResult> GetApprUserList(int CorpId, int DeptId, int PostId, string UserName, int page, int limit)
+        {
+            try
+            {
+                var iqa = context.AppUsers.Where(u => u.Status == "有效");
+                if (DeptId != 0)
+                {
+                    iqa = context.AppUsers.Where(u => u.DeptId == DeptId);
+                }
+                else
+                {
+                    if ( CorpId != 0)
+                    {
+                        iqa = context.AppUsers.Where(u => u.CorpId == CorpId);
+                    }
+                }
+                if (PostId != 0)
+                {
+                    iqa = context.AppUsers.Where(u => u.PostId == PostId);
+                }
+                if (!string.IsNullOrEmpty(UserName))
+                {
+                    iqa = context.AppUsers.Where(u => u.UserName.Contains(UserName));
+                }
+                var list = await iqa.ToListAsync();
+                decimal count = 0;
+                if (list.Count > 0)
+                {
+                    count = Math.Ceiling(Convert.ToDecimal(list.Count) / Convert.ToDecimal(limit));
+                    if (page > count)
+                    {
+                        return Json(new { code = 1, msg = "没有更多数据了。", count = Convert.ToInt32(count), data = new { } });
+                    }
+                    list = list.Skip((page - 1) * limit).Take(limit).ToList();
+                }
+                else
+                {
+                    return Json(new { code = 0, msg = "查询成功，与查询条件相符的数据为0行", count = Convert.ToInt32(count), data = new { } });
+                }
+                return Json(new { code = 0, msg = "查询成功", count = Convert.ToInt32(count), data = list });
+            }
+            catch (Exception ex)
+            {
+                logger.LogInformation(HttpContext.Session.GetString("who") + "查询失败。" + ex.Message);
+                return Json(new
+                {
+                    code = 1,
+                    msg = "查询失败，请联系管理员",
+                    count = 0,
+                    data = new { }
+                });
+            }
+        }
+        #endregion 
+
+        #region 根据ID获取节点属性信息
+        [HttpGet]
+        public async Task<IActionResult> GetNodePro(int FlowId,string NodeCode)
+        {
+            var single = await context.FlowNodePros.SingleOrDefaultAsync(u => u.FlowId == FlowId && u.NodeCode == NodeCode);
+            return Json(new { code = single == null ? 1 : 0, msg = single == null ? "查询不到该节点属性信息" : "查询成功", count = single == null ? 0 : 1, data = single });
+        }
+        #endregion
+
+        #region 新增或编辑节点属性
+        [HttpPost]
+        public async Task<IActionResult> InsertOrModifyNodePro(int FlowId, string NodeCode, string PageViewUrl,int ApprUserId,
+            int ApprCorpId,int ApprDeptId,int ApprPostId)
+        {
+            try
+            {
+                var modify = await context.FlowNodePros.SingleOrDefaultAsync(u => u.FlowId == FlowId && u.NodeCode == u.NodeCode);
+                if (modify != null)
+                {
+                    modify.PageViewUrl = PageViewUrl ?? "";
+                    modify.ApprUserId = ApprUserId;
+                    modify.ApprCorpId = ApprCorpId;
+                    modify.ApprDeptId = ApprDeptId;
+                    modify.ApprPostId = ApprPostId;
+                    modify.LastModifiedDate = DateTime.Now;
+                    modify.LastModifiedUser = HttpContext.Session.GetInt32("user_id");
+                    context.FlowNodePros.Update(modify);
+                    await context.SaveChangesAsync();
+                    logger.LogInformation(HttpContext.Session.GetString("who") + "保存节点属性成功。");
+                }
+                else
+                {
+                    await context.FlowNodePros.AddAsync(new FlowNodePro()
+                    {
+                        FlowId = FlowId,
+                        NodeCode = NodeCode ?? "",
+                        PageViewUrl = PageViewUrl ?? "",
+                        ApprUserId = ApprUserId,
+                        ApprCorpId = ApprCorpId,
+                        ApprDeptId = ApprDeptId,
+                        ApprPostId = ApprPostId,
+                        CreationDate = DateTime.Now,
+                        CreationUser = HttpContext.Session.GetInt32("user_id")
+                    });
+                    await context.SaveChangesAsync();
+                    logger.LogInformation(HttpContext.Session.GetString("who") + "新增节点属性成功。");
+                }
+                return Json(new { code = 200, msg = "保存成功" });
+            }
+            catch (Exception ex)
+            {
+                logger.LogInformation(HttpContext.Session.GetString("who") + "保存节点属性失败。" + ex.Message);
+                return Json(new { code = 300, msg = "保存失败" });
+            }
+        }
+        #endregion
+
+        #region 节点名称更改
+        [HttpPost]
+        public async Task<IActionResult> WorkFlowNodeUpdate(string Code, string Name)
+        {
+            try
+            {
+                var modify = await context.FlowNodes.SingleOrDefaultAsync(u => u.NodeCode == Code);
+                if (modify != null)
+                {
+                    modify.NodeName = Name ?? "";
+                    modify.LastModifiedDate = DateTime.Now;
+                    modify.LastModifiedUser = HttpContext.Session.GetInt32("user_id");
+                    context.FlowNodes.Update(modify);
+                    await context.SaveChangesAsync();
+                    logger.LogInformation(HttpContext.Session.GetString("who") + "保存节点名称成功。");
+                    return Json(new { code = 200, msg = "保存成功" });
+                }
+                else
+                {
+                    logger.LogInformation(HttpContext.Session.GetString("who") + "保存节点名称失败,节点不存在。");
+                    return Json(new { code = 300, msg = "节点不存在" });
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.LogInformation(HttpContext.Session.GetString("who") + "保存节点名称失败。" + ex.Message);
+                return Json(new { code = 300, msg = "保存失败" });
+            }
+        } 
+        #endregion
+
+        #endregion
+
+        #region 保存设计
+        [HttpPost]
+        public async Task<IActionResult> SaveWorkFlow(int FlowId, string JsonData)
+        {
+            JObject j = JObject.Parse(JsonData);
+            JToken jn = (JToken)j["nodes"];
+            JToken jl = (JToken)j["lines"];
+            List<WorkFlow.Node> nodes = new List<WorkFlow.Node>();
+            List<WorkFlow.Line> lines = new List<WorkFlow.Line>();
+            //节点
+            foreach (JProperty jp in jn)
+            {
+                JObject node = (JObject)jp.Value;
+                string n = node.ToString().Remove(node.ToString().Length - 1, 1) + ",\"id\":\"" + jp.Name + "\"}";
+                WorkFlow.Node rb = Newtonsoft.Json.JsonConvert.DeserializeObject<WorkFlow.Node>(n);
+                nodes.Add(rb);
+            }
+            //线
+            foreach (JProperty jp in jl)
+            {
+                JObject line = (JObject)jp.Value;
+                string n = line.ToString().Remove(line.ToString().Length - 1, 1) + ",\"id\":\"" + jp.Name + "\"}";
+                WorkFlow.Line rb = Newtonsoft.Json.JsonConvert.DeserializeObject<WorkFlow.Line>(n);
+                lines.Add(rb);
+            }
+            if (nodes.Count == 0)
+            {
+                var removeNodePros = await context.FlowNodePros.Where(u => u.FlowId == FlowId).ToListAsync();
+                var removeLinePros = await context.FlowLinePros.Where(u => u.FlowId == FlowId).ToListAsync();
+                var removeNodes = await context.FlowNodes.Where(u => u.ApprFlowId == FlowId).ToListAsync();
+                var removeLines = await context.FlowLines.Where(u => u.ApprFlowId == FlowId).ToListAsync();
+                if (removeNodePros.Count>0)
+                {
+                    context.FlowNodePros.RemoveRange(removeNodePros);
+                }
+                if (removeLinePros.Count > 0)
+                {
+                    context.FlowLinePros.RemoveRange(removeLinePros);
+                }
+                if (removeNodes.Count > 0)
+                {
+                    context.FlowNodes.RemoveRange(removeNodes);
+                }
+                if (removeLines.Count > 0)
+                {
+                    context.FlowLines.RemoveRange(removeLines);
+                }
+                await context.SaveChangesAsync();
+                logger.LogInformation(HttpContext.Session.GetString("who") + "检测到设计中不存在节点，已清空该审批流所有相关设计。");
+                return Json(new { code = 200, msg = "检测到设计中不存在节点，已清空该审批流所有相关设计" });
+            }
+            else
+            {
+                bool flag = false;
+                using (var tran = context.Database.BeginTransaction())
+                {
+                    try
+                    {
+                        var ls = await context.FlowLines.Where(u => u.ApprFlowId == FlowId).ToListAsync();
+                        if (ls.Count > 0)
+                        {
+                            context.FlowLines.RemoveRange(ls);
+                        }
+                        var ns = await context.FlowNodes.Where(u => u.ApprFlowId == FlowId).ToListAsync();
+                        if (ls.Count > 0)
+                        {
+                            context.FlowNodes.RemoveRange(ns);
+                        }
+                        for (int i = 0; i < nodes.Count; i++)
+                        {
+                            string type = "";
+                            if (nodes[i].type == "start round") { type = "start"; }
+                            if (nodes[i].type == "task round") { type = "node"; }
+                            if (nodes[i].type == "end round") { type = "end"; }
+                            context.FlowNodes.Add(new FlowNode()
+                            {
+                                ApprFlowId = FlowId,
+                                NodeCode = nodes[i].id,
+                                NodeName = nodes[i].name,
+                                Type = type ?? "",
+                                Height = Convert.ToDouble(nodes[i].height),
+                                Left = Convert.ToDouble(nodes[i].left),
+                                Top = Convert.ToDouble(nodes[i].top),
+                                Width = Convert.ToDouble(nodes[i].width),
+                                Num = (i + 1),
+                                CreationDate = DateTime.Now,
+                                CreationUser = HttpContext.Session.GetInt32("user_id")
+                            });
+                        }
+                        for (int i = 0; i < lines.Count; i++)
+                        {
+                            context.FlowLines.Add(new FlowLine()
+                            {
+                                ApprFlowId = FlowId,
+                                LineCode = lines[i].id,
+                                LineName = lines[i].name,
+                                Type = "line",
+                                Num = (i + 1),
+                                From = lines[i].from,
+                                To = lines[i].to,
+                                CreationDate = DateTime.Now,
+                                CreationUser = HttpContext.Session.GetInt32("user_id")
+                            });
+                        }
+                        context.SaveChanges();
+                        await tran.CommitAsync();
+                        flag = true;
+                        logger.LogInformation(HttpContext.Session.GetString("who") + "保存流设计成功。");
+                    }
+                    catch (Exception ex)
+                    {
+                        await tran.RollbackAsync();
+                        logger.LogInformation(HttpContext.Session.GetString("who") + "保存流设计失败。" + ex.Message);
+                    }
+                }
+                return flag ? Json(new { code = 200, msg = "保存成功" }) : Json(new { code = 200, msg = "保存失败" });
+            }
+        }
+        #endregion
+
+        #region 获取流json
+        [HttpGet]
+        public async Task<IActionResult> GetWorkFlowJson(int FlowId)
+        {
+            var flow=await context.ApprFlows.SingleOrDefaultAsync(u => u.ApprFlowId == FlowId);
+            var nodes = await context.FlowNodes.Where(u => u.ApprFlowId == FlowId).ToListAsync();
+            var lines= await context.FlowLines.Where(u => u.ApprFlowId == FlowId).ToListAsync();
+            var n = nodes.Count > lines.Count ? nodes.Count : lines.Count;
+            if (n==0)
+            {
+                return Json(new { title = "", nodes = new { }, lines = new { }, areas = new { }, initNum = 0 });
+            }
+            string jsonData = "{\"title\":\"" + flow.ApprFlowName + "\",\"nodes\":{";
+            for (int i = 0; i < nodes.Count; i++)
+            {
+                var type = "";
+                if (nodes[i].Type=="start")
+                {
+                    type = "start round";
+                }
+                if (nodes[i].Type == "node")
+                {
+                    type = "task round";
+                }
+                if (nodes[i].Type == "end")
+                {
+                    type = "end round";
+                }
+                jsonData += "\"" + nodes[i].NodeCode + "\":{\"name\":\"" + nodes[i].NodeName + "\",\"left\":" + nodes[i].Left
+                    + ",\"top\":" + nodes[i].Top + ",\"type\":\"" + type + "\",\"width\":" + nodes[i].Width + ",\"height\":" + nodes[i].Height + "},";
+            }
+            jsonData = jsonData.Remove(jsonData.Length - 1, 1) + "},\"lines\":{";
+            for (int i = 0; i < lines.Count; i++)
+            {
+                jsonData += "\"" + lines[i].LineCode + "\":{\"type\":\"sl\",\"from\":\"" + lines[i].From + "\",\"to\":\"" + lines[i].To
+                    + "\",\"name\":\"" + lines[i].LineName + "\"},";
+            }
+            jsonData = jsonData.Remove(jsonData.Length - 1, 1) + "},\"areas\":{},\"initNum\":" + (nodes.Count + lines.Count) + "}";
+            return Content(jsonData);
+        }
+        #endregion
     }
+
+    #region 审批流设计json类
+    public class WorkFlow
+    {
+        /// <summary>
+        /// 节点
+        /// </summary>
+        public class Node
+        {
+            public string id { get; set; }
+            public string name { get; set; }
+            public string left { get; set; }
+            public string top { get; set; }
+            public string type { get; set; }
+            public string width { get; set; }
+            public string height { get; set; }
+            public string alt { get; set; }
+        }
+        /// <summary>
+        /// 线
+        /// </summary>
+        public class Line
+        {
+            public string id { get; set; }
+            public string type { get; set; }
+            public string from { get; set; }
+            public string to { get; set; }
+            public string name { get; set; }
+            public string alt { get; set; }
+        }
+        /// <summary>
+        /// 区域
+        /// </summary>
+        public class Area
+        {
+            public string name { get; set; }
+            public string left { get; set; }
+            public string top { get; set; }
+            public string color { get; set; }
+            public string width { get; set; }
+            public string height { get; set; }
+            public string alt { get; set; }
+        }
+        /// <summary>
+        /// 根
+        /// </summary>
+        public class RootObject
+        {
+            public string title { get; set; }
+            public string initNum { get; set; }
+        }
+    } 
+    #endregion
 }
