@@ -448,7 +448,25 @@ namespace netcore.Controllers.WorkFlow
         {
             try
             {
-                var list = await context.ApprTypes.Where(u => u.Status == "有效").ToListAsync();
+                var list = await (from r in (
+    (from t in context.ApprTypes
+     join f in context.ApprFlows
+           on new { t.ApprTypeId, t.Status }
+       equals new { ApprTypeId = (int)f.ApprTypeId, Status = "有效" }
+     select new
+     {
+         t.ApprTypeCode,
+         t.ApprTypeId,
+         status =
+       f.ApprFlowId == null ? "未选" : "已选"
+     }))
+                                  where
+                                    r.status == "未选"
+                                  select new
+                                  {
+                                      r.ApprTypeCode,
+                                      r.ApprTypeId
+                                  }).ToListAsync();
                 return Json(new { code = 0, msg = "获取成功", data = list });
             }
             catch (Exception ex)
@@ -1210,6 +1228,295 @@ namespace netcore.Controllers.WorkFlow
             jsonData = jsonData.Remove(jsonData.Length - 1, 1) + "},\"areas\":{},\"initNum\":" + (nodes.Count + lines.Count) + "}";
             return Content(jsonData);
         }
+        #endregion
+
+        #region 获取审批流节点
+        [HttpGet]
+        public async Task<IActionResult> GetApprNodes(string ApprTypeCode,int SourceId)
+        {
+            try
+            {
+                var ApprType = await context.ApprTypes.SingleOrDefaultAsync(u => u.ApprTypeCode == ApprTypeCode);
+                if (ApprType == null)
+                {
+                    return Json(new { code = 1, msg = "审批流类型不存在", data = new { } });
+                }
+                var ApprFlow = await context.ApprFlows.SingleOrDefaultAsync(u => u.ApprTypeId == ApprType.ApprTypeId);
+                if (ApprFlow == null)
+                {
+                    return Json(new { code = 1, msg = "审批流不存在", data = new { } });
+                }
+                var Appr = await (from apprs in context.Apprs
+                                  where
+                                    apprs.ApprFlowId == ApprFlow.ApprFlowId &&
+                                    apprs.SourceId == SourceId &&
+                                    (new string[] { "审批中", "审批退回" }).Contains(apprs.Status)
+                                  select new
+                                  {
+                                      apprs
+                                  }).SingleOrDefaultAsync();
+                var Nodes = await context.FlowNodes.Where(u => u.ApprFlowId == ApprFlow.ApprFlowId).OrderBy(u => u.Num).ToListAsync();
+                if (Nodes.Count == 0)
+                {
+                    return Json(new { code = 1, msg = "找不到任何审批节点", data = new { } });
+                }
+                if (Appr != null)
+                {
+                    var ApprTran = await (from a in context.ApprTrans
+                                          where
+                                            a.TranNumber ==
+                                              (from b in context.ApprTrans
+                                               where
+                                             a.ApprId == b.ApprId && b.ApprId == Appr.apprs.ApprId
+                                               select new
+                                               {
+                                                   b.TranNumber
+                                               }).Max(p => p.TranNumber)
+                                          select new
+                                          {
+                                              a
+                                          }).SingleOrDefaultAsync();
+                    if (ApprTran != null)
+                    {
+                        return Json(new { code = 0, msg = "查询成功", data = Nodes, current_note = ApprTran.a.SubmitNodeId });
+                    }
+                }
+                return Json(new { code = 0, msg = "查询成功", data = Nodes, current_note = -99 });
+            }
+            catch (Exception ex)
+            {
+                logger.LogInformation(HttpContext.Session.GetString("who") + "：获取审批流节点失败。" + ex.Message);
+                return Json(new { code = 300, msg = "获取审批流节点失败，请联系管理员" });
+            }
+        }
+        #endregion
+
+        #region 获取审批流节点信息
+        [HttpGet]
+        public async Task<IActionResult> GetNodePro(int NodeId)
+        {
+            try
+            {
+                var Node = await context.FlowNodes.SingleOrDefaultAsync(u => u.NodeId == NodeId);
+                if (Node == null)
+                {
+                    return Json(new { code = 1, msg = "节点不存在" });
+                }
+                var Pro = await context.FlowNodePros.SingleOrDefaultAsync(u => u.NodeCode == Node.NodeCode && u.FlowId == Node.ApprFlowId);
+                if (Pro == null)
+                {
+                    return Json(new { code = 1, msg = "节点未设置审批人员信息" });
+                }
+                if (Pro.ApprUserId is null)
+                {
+                    if (Pro.ApprPostId is null)
+                    {
+                        if (Pro.ApprDeptId is null)
+                        {
+                            if (Pro.ApprCorpId is null)
+                            {
+                                return Json(new { code = 1, msg = "节点未设置审批人员信息" });
+                            }
+                            else
+                            {
+                                var user = await context.AppUsers.Where(u => u.CorpId == Pro.ApprCorpId && u.Status == "有效").ToListAsync();
+                                return Json(new { code = 0, msg = "查询成功", data = user, assign = -99 });
+                            }
+                        }
+                        else
+                        {
+                            var user = await context.AppUsers.Where(u => u.DeptId == Pro.ApprDeptId && u.Status == "有效").ToListAsync();
+                            return Json(new { code = 0, msg = "查询成功", data = user, assign = -99 });
+                        }
+                    }
+                    else
+                    {
+                        var user = await context.AppUsers.Where(u => u.PostId == Pro.ApprPostId && u.Status == "有效").ToListAsync();
+                        return Json(new { code = 0, msg = "查询成功", data = user, assign = -99 });
+                    }
+                }
+                else
+                {
+                    if (Pro.ApprPostId is null)
+                    {
+                        if (Pro.ApprDeptId is null)
+                        {
+                            if (Pro.ApprCorpId is null)
+                            {
+                                return Json(new { code = 1, msg = "节点未设置审批人员信息" });
+                            }
+                            else
+                            {
+                                var user = await context.AppUsers.Where(u => u.CorpId == Pro.ApprCorpId && u.Status == "有效").ToListAsync();
+                                return Json(new { code = 0, msg = "查询成功", data = user, assign = Pro.ApprUserId });
+                            }
+                        }
+                        else
+                        {
+                            var user = await context.AppUsers.Where(u => u.DeptId == Pro.ApprDeptId && u.Status == "有效").ToListAsync();
+                            return Json(new { code = 0, msg = "查询成功", data = user, assign = Pro.ApprUserId });
+                        }
+                    }
+                    else
+                    {
+                        var user = await context.AppUsers.Where(u => u.PostId == Pro.ApprPostId && u.Status == "有效").ToListAsync();
+                        return Json(new { code = 0, msg = "查询成功", data = user, assign = Pro.ApprUserId });
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.LogInformation(HttpContext.Session.GetString("who") + "：获取审批流节点信息失败。" + ex.Message);
+                return Json(new { code = 300, msg = "获取审批流节点信息失败，请联系管理员" });
+            }
+            
+        }
+        #endregion
+
+        #region 获取审批事务
+        [HttpGet]
+        public async Task<IActionResult> GetApprTran(int ApprId)
+        {
+            try
+            {
+                var tran = await context.ApprTrans.Where(u => u.ApprId == ApprId).ToListAsync();
+                if (tran.Count > 0)
+                {
+                    return Json(new { code = 0, msg = "查询成功", count = tran.Count, data = tran });
+                }
+                else
+                {
+                    return Json(new { code = 0, msg = "查询成功", count = 0, data = new { } });
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.LogInformation(HttpContext.Session.GetString("who") + "：查询审批事务出错。" + ex.Message);
+                return Json(new { code = 1, msg = "查询审批事务出错", count = 0, data = new { } });
+            }            
+        } 
+        #endregion
+
+        #region 创建审批流
+        [HttpPost]
+        public async Task<IActionResult> WorkFlowStart(
+            string ApprTypeCode, int SourceId, string Title, string Note, int NextApprSubmitter, string ApprNote)
+        {
+            using (var tran = context.Database.BeginTransaction())
+            {
+                try
+                {
+                    var ApprType = await context.ApprTypes.SingleOrDefaultAsync(u => u.ApprTypeCode == ApprTypeCode);
+                    if (ApprType == null)
+                    {
+                        return Json(new { code = 300, msg = "创建审批流失败，审批流类型不存在" });
+                    }
+                    var ApprFlow = await context.ApprFlows.SingleOrDefaultAsync(u => u.ApprTypeId == ApprType.ApprTypeId);
+                    if (ApprFlow == null)
+                    {
+                        return Json(new { code = 300, msg = "创建审批流失败，审批流不存在" });
+                    }
+                    if (ApprType.Status == "失效")
+                    {
+                        return Json(new { code = 300, msg = "创建审批流失败，审批流类型已失效" });
+                    }
+                    var Nodes = await context.FlowNodes.Where(u => u.ApprFlowId == ApprFlow.ApprFlowId).OrderBy(u => u.Num).ToListAsync();
+                    if (Nodes.Count == 0)
+                    {
+                        return Json(new { code = 300, msg = "创建审批流失败，节点设置错误，不存在任何节点" });
+                    }
+                    var nodeStart = Nodes.Find(u => u.Type == "start");
+                    if (nodeStart == null)
+                    {
+                        return Json(new { code = 300, msg = "创建审批流失败，节点设置错误，起始节点不存在" });
+                    }
+                    var nodeEnd = Nodes.Find(u => u.Type == "end");
+                    if (nodeEnd == null)
+                    {
+                        return Json(new { code = 300, msg = "创建审批流失败，节点设置错误，结束节点不存在" });
+                    }
+                    var Lines = await context.FlowLines.Where(u => u.ApprFlowId == ApprFlow.ApprFlowId).ToListAsync();
+                    if (Lines.Count == 0)
+                    {
+                        return Json(new { code = 300, msg = "创建审批流失败，连接线设置错误，不存在连接线" });
+                    }
+                    var LineToEnd = await context.FlowLines.Where(u => u.To == nodeEnd.NodeCode && u.ApprFlowId == ApprFlow.ApprFlowId).ToListAsync();
+                    if (LineToEnd.Count == 0)
+                    {
+                        return Json(new { code = 300, msg = "创建审批流失败，连接线设置错误，没有连接线连接到结束节点" });
+                    }
+                    var LineStartAndEnd = await context.FlowLines.Where(u => u.From == nodeStart.NodeCode && u.To == nodeEnd.NodeCode && u.ApprFlowId == ApprFlow.ApprFlowId).ToListAsync();
+                    if (LineStartAndEnd.Count > 0)
+                    {
+                        return Json(new { code = 300, msg = "创建审批流失败，审批设置错误，起始节点不能直接连接结束节点" });
+                    }
+                    var NextNode = await context.FlowNodes.SingleOrDefaultAsync(u => u.Num == (nodeStart.Num + 1) && u.ApprFlowId == ApprFlow.ApprFlowId);
+                    if (NextNode == null)
+                    {
+                        return Json(new { code = 300, msg = "创建审批流失败，节点设置错误，起始节点后找不到节点" });
+                    }
+                    var ApprList = await (from apprs in context.Apprs
+                                          where
+                                            apprs.SourceId == SourceId &&
+                                            (new string[] { "审批中", "审批通过" }).Contains(apprs.Status)
+                                          select new
+                                          {
+                                              apprs
+                                          }).ToListAsync();
+                    if (ApprList.Count > 0)
+                    {
+                        return Json(new { code = 300, msg = "创建审批流失败，该项目已经提交审批，无法再次提交" });
+                    }
+                    var ApprEntity = new Appr()
+                    {
+                        ApprFlowId = ApprFlow.ApprFlowId,
+                        SourceId = SourceId,
+                        Tile = Title,
+                        Note = Note,
+                        ApprNote = ApprNote,
+                        SubmissionTime = DateTime.Now,
+                        Submitter = HttpContext.Session.GetInt32("user_id"),
+                        SubmitterCorp = HttpContext.Session.GetInt32("CorpId"),
+                        SubmitterDept = HttpContext.Session.GetInt32("DeptId"),
+                        SubmitterPost = HttpContext.Session.GetInt32("PostId"),
+                        SubmitterPhone=HttpContext.Session.GetString("Phone"),
+                        Status = "审批中",
+                        CreationDate = DateTime.Now,
+                        CreationUser = HttpContext.Session.GetInt32("user_id")
+                    };
+                    context.Entry(ApprEntity).State = EntityState.Added;
+                    context.SaveChanges();
+                    context.Entry(ApprEntity);
+                    context.ApprTrans.Add(new ApprTran()
+                    {
+                        ApprId = ApprEntity.ApprId,
+                        TranNumber = 1,
+                        SubmissionTime = DateTime.Now,
+                        SubmitterNote = ApprNote,
+                        Submitter = HttpContext.Session.GetInt32("user_id"),
+                        SubmitterCorp = HttpContext.Session.GetInt32("CorpId"),
+                        SubmitterDept = HttpContext.Session.GetInt32("DeptId"),
+                        SubmitterPost = HttpContext.Session.GetInt32("PostId"),
+                        SubmitNodeId = nodeStart.NodeId,
+                        ApprNote = ApprNote,
+                        NextSubmitNodeId = NextNode.NodeId,
+                        NextSubmitNodeSubmitter = NextApprSubmitter,
+                        Status = "发起",
+                        CreationDate = DateTime.Now,
+                        CreationUser = HttpContext.Session.GetInt32("user_id")
+                    });
+                    context.SaveChanges();
+                    await tran.CommitAsync();
+                    return Json(new { code = 200, msg = "提交成功" });
+                }
+                catch (Exception ex)
+                {
+                    await tran.RollbackAsync();
+                    logger.LogInformation(HttpContext.Session.GetString("who") + "：创建审批流失败。" + ex.Message);
+                    return Json(new { code = 300, msg = "创建审批流失败，请联系管理员" });
+                }
+            }
+        } 
         #endregion
     }
 

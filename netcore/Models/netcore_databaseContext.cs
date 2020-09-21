@@ -36,6 +36,7 @@ namespace netcore.Models
         public virtual DbSet<Appr> Apprs { get; set; }
         public virtual DbSet<ApprFlow> ApprFlows { get; set; }
         public virtual DbSet<ApprTran> ApprTrans { get; set; }
+        public virtual DbSet<ApprTranTemp> ApprTranTemps { get; set; }
         public virtual DbSet<ApprType> ApprTypes { get; set; }
         public virtual DbSet<FlowLine> FlowLines { get; set; }
         public virtual DbSet<FlowLinePro> FlowLinePros { get; set; }
@@ -699,6 +700,10 @@ namespace netcore.Models
                     .HasColumnName("appr_flow_id")
                     .HasComment("审批流id");
 
+                entity.Property(e => e.ApprNote)
+                    .HasColumnName("appr_note")
+                    .HasComment("审批意见");
+
                 entity.Property(e => e.CreationDate)
                     .HasColumnType("datetime")
                     .HasColumnName("creation_date")
@@ -708,10 +713,6 @@ namespace netcore.Models
                 entity.Property(e => e.CreationUser)
                     .HasColumnName("creation_user")
                     .HasComment("创建人");
-
-                entity.Property(e => e.CurrentSubmitter)
-                    .HasColumnName("current_submitter")
-                    .HasComment("当前审批人id");
 
                 entity.Property(e => e.LastModifiedDate)
                     .HasColumnType("datetime")
@@ -753,6 +754,11 @@ namespace netcore.Models
                 entity.Property(e => e.SubmitterDept)
                     .HasColumnName("submitter_dept")
                     .HasComment("提交人部门id");
+
+                entity.Property(e => e.SubmitterPhone)
+                    .HasMaxLength(50)
+                    .HasColumnName("submitter_phone")
+                    .HasComment("提交人手机号");
 
                 entity.Property(e => e.SubmitterPost)
                     .HasColumnName("submitter_post")
@@ -826,6 +832,10 @@ namespace netcore.Models
                     .HasColumnName("appr_id")
                     .HasComment("审批主键");
 
+                entity.Property(e => e.ApprNote)
+                    .HasColumnName("appr_note")
+                    .HasComment("审批意见");
+
                 entity.Property(e => e.CreationDate)
                     .HasColumnType("datetime")
                     .HasColumnName("creation_date")
@@ -853,6 +863,15 @@ namespace netcore.Models
                 entity.Property(e => e.NextSubmitNodeId)
                     .HasColumnName("next_submit_node_id")
                     .HasComment("下一个节点id");
+
+                entity.Property(e => e.NextSubmitNodeSubmitter)
+                    .HasColumnName("next_submit_node_submitter")
+                    .HasComment("下一个节点的审批人");
+
+                entity.Property(e => e.Status)
+                    .HasMaxLength(50)
+                    .HasColumnName("status")
+                    .HasComment("状态：待审批；同意；收回；不同意（退回）");
 
                 entity.Property(e => e.SubmissionTime)
                     .HasColumnType("datetime")
@@ -887,6 +906,53 @@ namespace netcore.Models
                 entity.Property(e => e.TranNumber)
                     .HasColumnName("tran_number")
                     .HasComment("处理顺序（自动增长）");
+            });
+
+            modelBuilder.Entity<ApprTranTemp>(entity =>
+            {
+                entity.HasKey(x => x.TranTemp);
+
+                entity.ToTable("appr_tran_temp");
+
+                entity.HasAnnotation("Relational:IsTableExcludedFromMigrations", false);
+
+                entity.Property(e => e.TranTemp).HasColumnName("tran_temp");
+
+                entity.Property(e => e.ApprFlowId).HasColumnName("appr_flow_id");
+
+                entity.Property(e => e.ApprTypeId).HasColumnName("appr_type_id");
+
+                entity.Property(e => e.CurrNodeCode)
+                    .HasMaxLength(300)
+                    .HasColumnName("curr_node_code");
+
+                entity.Property(e => e.CurrNodeName)
+                    .HasMaxLength(300)
+                    .HasColumnName("curr_node_name");
+
+                entity.Property(e => e.CurrNodeType)
+                    .HasMaxLength(50)
+                    .HasColumnName("curr_node_type");
+
+                entity.Property(e => e.CurrRect).HasColumnName("curr_rect");
+
+                entity.Property(e => e.NextNodeCode)
+                    .HasMaxLength(300)
+                    .HasColumnName("next_node_code");
+
+                entity.Property(e => e.NextNodeType)
+                    .HasMaxLength(50)
+                    .HasColumnName("next_node_type");
+
+                entity.Property(e => e.SourceId).HasColumnName("source_id");
+
+                entity.Property(e => e.UpperNodeCode)
+                    .HasMaxLength(300)
+                    .HasColumnName("upper_node_code");
+
+                entity.Property(e => e.UpperRect).HasColumnName("upper_rect");
+
+                entity.Property(e => e.WN).HasColumnName("w_n");
             });
 
             modelBuilder.Entity<ApprType>(entity =>

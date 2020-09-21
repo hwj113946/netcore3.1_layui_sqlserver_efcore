@@ -17,8 +17,11 @@ namespace netcore.Models
         public string SubmitterNote { get; set; }
         public DateTime? SubmissionTime { get; set; }
         public int? SubmitNodeId { get; set; }
+        public string ApprNote { get; set; }
         public int? LastSubmitNodeId { get; set; }
         public int? NextSubmitNodeId { get; set; }
+        public int? NextSubmitNodeSubmitter { get; set; }
+        public string Status { get; set; }
         public DateTime? LastModifiedDate { get; set; }
         public int? LastModifiedUser { get; set; }
         public DateTime? CreationDate { get; set; }

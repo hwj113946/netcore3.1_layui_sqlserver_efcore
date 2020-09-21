@@ -17,7 +17,8 @@ namespace netcore.Models
         public int? SubmitterCorp { get; set; }
         public int? SubmitterDept { get; set; }
         public int? SubmitterPost { get; set; }
-        public int? CurrentSubmitter { get; set; }
+        public string SubmitterPhone { get; set; }
+        public string ApprNote { get; set; }
         public string Status { get; set; }
         public DateTime? LastModifiedDate { get; set; }
         public int? LastModifiedUser { get; set; }

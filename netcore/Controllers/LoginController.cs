@@ -105,6 +105,7 @@ namespace netcore.Controllers
                         HttpContext.Session.SetInt32("CorpId", (int)user.CorpId);
                         HttpContext.Session.SetInt32("DeptId", (int)user.DeptId);
                         HttpContext.Session.SetInt32("PostId", (int)user.PostId);
+                        HttpContext.Session.SetString("Phone",user.Phone);
                         HttpContext.Session.SetString("who", "[" + user.UserId + "]" + user.UserCode + "_" + user.UserName);
                         logger.LogInformation(user.UserCode + "[" + user.UserName + "]:登录成功。");
                         return Json(new
@@ -137,6 +138,10 @@ namespace netcore.Controllers
                             HttpContext.Session.SetInt32("user_id", user.UserId);
                             HttpContext.Session.SetString("user_code", user.UserCode);
                             HttpContext.Session.SetString("user_name", user.UserName);
+                            HttpContext.Session.SetInt32("CorpId", (int)user.CorpId);
+                            HttpContext.Session.SetInt32("DeptId", (int)user.DeptId);
+                            HttpContext.Session.SetInt32("PostId", (int)user.PostId);
+                            HttpContext.Session.SetString("Phone", user.Phone);
                             HttpContext.Session.SetString("who", "[" + user.UserId + "]" + user.UserCode + "_" + user.UserName);
                             logger.LogInformation(user.UserCode + "[" + user.UserName + "]:登录成功。");
                             return Json(new
