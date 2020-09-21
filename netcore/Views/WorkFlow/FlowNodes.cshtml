@@ -1,0 +1,88 @@
+﻿@{
+    Layout = null;
+}
+<script src="~/js/jquery-3.2.1.min.js"></script>
+
+<style>
+    .sidebar {
+        margin: 0 auto;
+    }
+
+        .sidebar .active .inner {
+            background-color: #0be;
+        }
+
+    .bg-div {
+        width: 846px;
+        border-top: 1px solid #0be;
+        margin-top: 122px;
+        margin-left: 50px;
+        position: absolute;
+        z-index: 1;
+    }
+
+    .sidebar ul {
+        position: relative;
+        z-index: 10;
+        -moz-border-radius: 30px;
+        -webkit-border-radius: 30px;
+        border-radius: 30px;
+        display: block;
+    }
+
+        .sidebar ul li:hover .inner {
+            background-color: #0be;
+        }
+
+    .sidebar li {
+        font-size: 14px;
+        line-height: 50px;
+        list-style-type: none;
+        float: left;
+        padding-top: 30px;
+        width: 140px;
+        position: relative;
+        margin-top: 65px;
+    }
+
+        .sidebar li.active .inner {
+            background: #0be;
+        }
+
+    .sidebar .inner {
+        display: block;
+        height: 9px;
+        width: 9px;
+        border: 1px solid #0be;
+        -moz-border-radius: 50%;
+        -webkit-border-radius: 50%;
+        border-radius: 50%;
+    }
+
+    .sidebar .point {
+        vertical-align: middle;
+        background: #fff;
+        display: inline-block;
+        padding: 4px;
+        height: 9px;
+        width: 9px;
+        -moz-border-radius: 50%;
+        -webkit-border-radius: 50%;
+        border-radius: 50%;
+        overflow: hidden;
+        margin-right: 10px;
+    }
+
+    .txt_class {
+        position: absolute;
+        width: 100%;
+        left: 0;
+        top: -20px;
+        font-weight: bold;
+        font-size: 16px;
+        cursor: pointer;
+    }
+</style>
+
+<body>
+</body>

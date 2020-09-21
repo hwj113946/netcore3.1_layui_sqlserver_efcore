@@ -20,10 +20,12 @@ namespace netcore.Controllers.WorkFlow
     {
         private readonly netcore_databaseContext context;
         private readonly ILogger<WorkFlowController> logger;
+        private List<FlowNode> NewFlowNodes = null;
         public WorkFlowController(netcore_databaseContext _context, ILogger<WorkFlowController> _logger)
         {
             context = _context;
             logger = _logger;
+            NewFlowNodes = new List<FlowNode>();
         }
 
         #region 审批流类型
@@ -452,20 +454,22 @@ namespace netcore.Controllers.WorkFlow
     (from t in context.ApprTypes
      join f in context.ApprFlows
            on new { t.ApprTypeId, t.Status }
-       equals new { ApprTypeId = (int)f.ApprTypeId, Status = "有效" }
+       equals new { ApprTypeId = (int)f.ApprTypeId, Status = "有效" } into f_join
+     from f in f_join.DefaultIfEmpty()
      select new
      {
-         t.ApprTypeCode,
          t.ApprTypeId,
-         status =
+         t.ApprTypeName,
+         Status =
        f.ApprFlowId == null ? "未选" : "已选"
      }))
                                   where
-                                    r.status == "未选"
+                                    r.Status == "未选"
                                   select new
                                   {
-                                      r.ApprTypeCode,
-                                      r.ApprTypeId
+                                      r.ApprTypeId,
+                                      r.ApprTypeName,
+                                      r.Status
                                   }).ToListAsync();
                 return Json(new { code = 0, msg = "获取成功", data = list });
             }
@@ -1230,6 +1234,97 @@ namespace netcore.Controllers.WorkFlow
         }
         #endregion
 
+        #region 节点：获取节点集合与节点属性
+        private async Task<List<FlowLine>> GetLines(int FlowId, string From)
+        {
+            try
+            {
+                var lines = await context.FlowLines.Where(u => u.ApprFlowId == FlowId && u.From == From).ToListAsync();
+                return lines;
+            }
+            catch (Exception ex)
+            {
+                return null;
+            }
+        }
+
+        private async Task<List<FlowLinePro>> GetLinePros(int FlowId, string From, string LineCode)
+        {
+            try
+            {
+                var linePros = await (from f in context.FlowLines
+                                      join p in context.FlowLinePros
+                                            on new { f.LineCode, f.ApprFlowId, Column1 = (int)f.ApprFlowId, Column2 = f.LineCode, Column3 = f.From }
+                                        equals new { p.LineCode, ApprFlowId = p.FlowId, Column1 = FlowId, Column2 = LineCode, Column3 = From }
+                                      select new FlowLinePro
+                                      {
+                                          CreationDate = p.CreationDate,
+                                          CreationUser = p.CreationUser,
+                                          FlowId = p.FlowId,
+                                          LastModifiedDate = p.LastModifiedDate,
+                                          LastModifiedUser = p.LastModifiedUser,
+                                          LineCode = p.LineCode,
+                                          LineProId = p.LineProId,
+                                          Sql = p.Sql
+                                      }).ToListAsync();
+                return linePros;
+            }
+            catch (Exception ex)
+            {
+                return null;
+            }
+        }
+        #endregion
+
+        #region 根据开始节点代码、审批流Id、审批类型对象、源Id进行获取所对应走向的节点
+        private async Task<string> GetNode(string NodeCode, int FlowId, ApprType apprType, int SourceId)
+        {
+            var Node = await context.FlowNodes.SingleOrDefaultAsync(u => u.NodeCode == NodeCode && u.ApprFlowId == FlowId);
+            var Lines = await GetLines(FlowId, NodeCode);
+            if (Lines.Count > 0)
+            {
+                for (int i = 0; i < Lines.Count; i++)
+                {
+                    var linePro = await GetLinePros(FlowId, Lines[i].From, Lines[i].LineCode);
+                    if (linePro.Count > 0)
+                    {
+                        var sql = @"select count(*) as n from " + apprType.TableName + " t where " + apprType.TablePkName + " = @SourceId  ";
+                        var sqlIf = "";
+                        for (int k = 0; k < linePro.Count; k++)
+                        {
+                            sqlIf += " and ( " + linePro[k].Sql + " )";
+                        }
+                        sql = sql + sqlIf;
+                        var s = context.Database.SqlQuery(sql, new[] { new SqlParameter("@SourceId", SourceId) });
+                        if (s.Rows.Count > 0)
+                        {
+                            if (s.Rows[0]["n"].ToString() != "0")
+                            {
+                                NewFlowNodes.Add(Node);
+                                await GetNode(Lines[i].To, FlowId, apprType, SourceId);
+                                break;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        NewFlowNodes.Add(Node);
+                        await GetNode(Lines[i].To, FlowId, apprType, SourceId);
+                    }
+                }
+                return "Y";
+            }
+            else
+            {
+                if (Node.Type == "end")
+                {
+                    NewFlowNodes.Add(Node);
+                }
+                return "Y";
+            }
+        } 
+        #endregion
+
         #region 获取审批流节点
         [HttpGet]
         public async Task<IActionResult> GetApprNodes(string ApprTypeCode,int SourceId)
@@ -1260,6 +1355,9 @@ namespace netcore.Controllers.WorkFlow
                 {
                     return Json(new { code = 1, msg = "找不到任何审批节点", data = new { } });
                 }
+                var node = Nodes.Find(u=>u.Type=="start");
+                //根据开始节点代码、审批流Id、审批类型对象、源Id进行获取所对应走向的节点
+                await GetNode(node.NodeCode, ApprFlow.ApprFlowId, ApprType, SourceId);
                 if (Appr != null)
                 {
                     var ApprTran = await (from a in context.ApprTrans
@@ -1278,10 +1376,10 @@ namespace netcore.Controllers.WorkFlow
                                           }).SingleOrDefaultAsync();
                     if (ApprTran != null)
                     {
-                        return Json(new { code = 0, msg = "查询成功", data = Nodes, current_note = ApprTran.a.SubmitNodeId });
+                        return Json(new { code = 0, msg = "查询成功", data = NewFlowNodes, current_note = ApprTran.a.SubmitNodeId });
                     }
                 }
-                return Json(new { code = 0, msg = "查询成功", data = Nodes, current_note = -99 });
+                return Json(new { code = 0, msg = "查询成功", data = NewFlowNodes, current_note = -99 });
             }
             catch (Exception ex)
             {
@@ -1409,50 +1507,60 @@ namespace netcore.Controllers.WorkFlow
                     var ApprType = await context.ApprTypes.SingleOrDefaultAsync(u => u.ApprTypeCode == ApprTypeCode);
                     if (ApprType == null)
                     {
+                        logger.LogInformation(HttpContext.Session.GetString("who") + "：创建审批流失败，审批流类型不存在。");
                         return Json(new { code = 300, msg = "创建审批流失败，审批流类型不存在" });
                     }
                     var ApprFlow = await context.ApprFlows.SingleOrDefaultAsync(u => u.ApprTypeId == ApprType.ApprTypeId);
                     if (ApprFlow == null)
                     {
+                        logger.LogInformation(HttpContext.Session.GetString("who") + "：创建审批流失败，审批流不存在。");
                         return Json(new { code = 300, msg = "创建审批流失败，审批流不存在" });
                     }
                     if (ApprType.Status == "失效")
                     {
+                        logger.LogInformation(HttpContext.Session.GetString("who") + "：创建审批流失败，审批流类型已失效。");
                         return Json(new { code = 300, msg = "创建审批流失败，审批流类型已失效" });
                     }
                     var Nodes = await context.FlowNodes.Where(u => u.ApprFlowId == ApprFlow.ApprFlowId).OrderBy(u => u.Num).ToListAsync();
                     if (Nodes.Count == 0)
                     {
+                        logger.LogInformation(HttpContext.Session.GetString("who") + "：创建审批流失败，节点设置错误，不存在任何节点。");
                         return Json(new { code = 300, msg = "创建审批流失败，节点设置错误，不存在任何节点" });
                     }
                     var nodeStart = Nodes.Find(u => u.Type == "start");
                     if (nodeStart == null)
                     {
+                        logger.LogInformation(HttpContext.Session.GetString("who") + "：创建审批流失败，节点设置错误，起始节点不存在。");
                         return Json(new { code = 300, msg = "创建审批流失败，节点设置错误，起始节点不存在" });
                     }
                     var nodeEnd = Nodes.Find(u => u.Type == "end");
                     if (nodeEnd == null)
                     {
+                        logger.LogInformation(HttpContext.Session.GetString("who") + "：创建审批流失败，节点设置错误，结束节点不存在。");
                         return Json(new { code = 300, msg = "创建审批流失败，节点设置错误，结束节点不存在" });
                     }
                     var Lines = await context.FlowLines.Where(u => u.ApprFlowId == ApprFlow.ApprFlowId).ToListAsync();
                     if (Lines.Count == 0)
                     {
+                        logger.LogInformation(HttpContext.Session.GetString("who") + "：创建审批流失败，连接线设置错误，不存在连接线。");
                         return Json(new { code = 300, msg = "创建审批流失败，连接线设置错误，不存在连接线" });
                     }
                     var LineToEnd = await context.FlowLines.Where(u => u.To == nodeEnd.NodeCode && u.ApprFlowId == ApprFlow.ApprFlowId).ToListAsync();
                     if (LineToEnd.Count == 0)
                     {
+                        logger.LogInformation(HttpContext.Session.GetString("who") + "：创建审批流失败，连接线设置错误，没有连接线连接到结束节点。");
                         return Json(new { code = 300, msg = "创建审批流失败，连接线设置错误，没有连接线连接到结束节点" });
                     }
                     var LineStartAndEnd = await context.FlowLines.Where(u => u.From == nodeStart.NodeCode && u.To == nodeEnd.NodeCode && u.ApprFlowId == ApprFlow.ApprFlowId).ToListAsync();
                     if (LineStartAndEnd.Count > 0)
                     {
+                        logger.LogInformation(HttpContext.Session.GetString("who") + "：创建审批流失败，审批设置错误，起始节点不能直接连接结束节点。");
                         return Json(new { code = 300, msg = "创建审批流失败，审批设置错误，起始节点不能直接连接结束节点" });
                     }
                     var NextNode = await context.FlowNodes.SingleOrDefaultAsync(u => u.Num == (nodeStart.Num + 1) && u.ApprFlowId == ApprFlow.ApprFlowId);
                     if (NextNode == null)
                     {
+                        logger.LogInformation(HttpContext.Session.GetString("who") + "：创建审批流失败，节点设置错误，起始节点后找不到节点。");
                         return Json(new { code = 300, msg = "创建审批流失败，节点设置错误，起始节点后找不到节点" });
                     }
                     var ApprList = await (from apprs in context.Apprs
@@ -1465,6 +1573,7 @@ namespace netcore.Controllers.WorkFlow
                                           }).ToListAsync();
                     if (ApprList.Count > 0)
                     {
+                        logger.LogInformation(HttpContext.Session.GetString("who") + "：创建审批流失败，该项目已经提交审批，无法再次提交。");
                         return Json(new { code = 300, msg = "创建审批流失败，该项目已经提交审批，无法再次提交" });
                     }
                     var ApprEntity = new Appr()
@@ -1506,8 +1615,19 @@ namespace netcore.Controllers.WorkFlow
                         CreationUser = HttpContext.Session.GetInt32("user_id")
                     });
                     context.SaveChanges();
-                    await tran.CommitAsync();
-                    return Json(new { code = 200, msg = "提交成功" });
+                    var sql = @"update " + ApprType.TableName + " set " + ApprType.TableStatusName + " = '" + ApprType.ApprStartStatus + "', "+ApprType.TableApprIdName+" = '" + ApprEntity.ApprId + "'  where " + ApprType.TablePkName + " =@SourceId ";
+                    int n = await context.Database.ExecuteSqlRawAsync(sql, new[] { new SqlParameter("@SourceId", SourceId) });
+                    if (n>0)
+                    {
+                        await tran.CommitAsync();
+                        return Json(new { code = 200, msg = "提交成功" });
+                    }
+                    else
+                    {
+                        await tran.RollbackAsync();
+                        logger.LogInformation(HttpContext.Session.GetString("who") + "：提交失败。[" + SourceId + "]" + sql);
+                        return Json(new { code = 300, msg = "提交失败" });
+                    }                    
                 }
                 catch (Exception ex)
                 {

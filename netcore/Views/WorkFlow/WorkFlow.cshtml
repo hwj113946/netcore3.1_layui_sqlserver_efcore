@@ -1,0 +1,155 @@
+﻿@{
+    Layout = null;
+}
+<script src="~/js/jquery-3.2.1.min.js"></script>
+<script src="~/layui/layui.js"></script>
+<link href="~/layui/css/layui.css" rel="stylesheet" />
+
+<form class="layui-form">
+    <br />
+    <div class="layui-form-item">
+        <label class="layui-form-label"></label>
+        <div class="layui-inline">
+            <a class="layui-btn layui-btn-sm layui-btn-disabled" id="btnCommit" onclick="btnCommit()">提交</a>
+        </div>
+        <div class="layui-inline">
+            <a class="layui-btn layui-btn-sm layui-btn-disabled layui-btn-danger" id="btnTakeBack" onclick="btnTakeBack()">收回</a>
+        </div>
+        <div class="layui-inline">
+            <a class="layui-btn layui-btn-sm layui-btn-disabled layui-btn-danger" id="btnBack" onclick="btnBack()">退回</a>
+        </div>
+        <div class="layui-inline">
+            <a class="layui-btn layui-btn-sm layui-btn-normal layui-btn-disabled" id="btnPrint" onclick="btnPrint()">打印流程</a>
+        </div>
+    </div>
+    <br />
+    <div class="layui-form-item">
+        <label class="layui-form-label">标题</label>
+        <div class="layui-input-block">
+            <a id="Title" class="layui-form-label-col" style="color:skyblue;text-decoration:underline;"></a>
+            <input class="layui-input" id="txt_Title" type="text" />
+        </div>
+    </div>
+    <div class="layui-form-item">
+        <label class="layui-form-label">说明</label><div class="layui-input-block">
+            <textarea class="layui-textarea" id="Note" placeholder="审批说明"></textarea>
+        </div>
+    </div>
+    <div class="layui-form-item">
+        <label class="layui-form-label">发布公司</label><div class="layui-input-inline">
+            <input class="layui-input" type="text" id="CorpName" readonly />
+        </div>
+        <label class="layui-form-label">发布部门</label><div class="layui-input-inline">
+            <input class="layui-input" type="text" id="DeptName" readonly />
+        </div>
+        <label class="layui-form-label">发布岗位</label><div class="layui-input-inline">
+            <input class="layui-input" type="text" id="PostName" readonly />
+        </div>
+    </div>
+    <div class="layui-form-item">
+        <label class="layui-form-label">发布人</label><div class="layui-input-inline">
+            <input class="layui-input" id="UserName" type="text" readonly />
+        </div>
+        <label class="layui-form-label">联系电话</label><div class="layui-input-block">
+            <input class="layui-input" id="Phone" type="text" autocomplete="off" readonly />
+        </div>
+        <label class="layui-form-label">发布时间</label><div class="layui-input-inline">
+            <input class="layui-input" id="SubmissionTime" type="text" readonly />
+        </div>
+    </div>
+    <div class="layui-form-item">
+        <label class="layui-form-label">审批意见</label><div class="layui-input-block">
+            <textarea class="layui-textarea" id="ApprNote" placeholder="审批意见"></textarea>
+        </div>
+    </div>
+    <div class="layui-form-item" id="zdyry">
+        <label class="layui-form-label">已定义可选审批人</label><div class="layui-input-block" id="div_person"></div>
+    </div>
+    <div class="layui-form-item" id="assign">
+        <label class="layui-form-label">下一审批人</label><div class="layui-input-inline">
+            <input class="layui-input" id="AssignUser" type="text" placeholder="单击弹出审批人选择" readonly onclick="ChooseNextApprUser()" />
+        </div>
+        <label class="layui-form-label">下一环节</label><div class="layui-input-inline">
+            <input class="layui-input" id="NextNodeName" type="text"  readonly />
+        </div>
+    </div>
+    <div class="layui-form-item">
+        <label class="layui-form-label">审批节点</label><div class="layui-input-block">
+            <iframe id="ApprNote" width="98%" height="60" marginheight="0" marginwidth="0"></iframe>
+        </div>
+    </div>
+    <table class="layui-table" lay-size="sm">
+        <colgroup>
+            <col width="5%" />
+            <col width="10%" />
+            <col width="10%" />
+            <col width="10%" />
+            <col width="55%" />
+            <col width="10%" />
+        </colgroup>
+        <thead>
+            <tr>
+                <th style="text-align:center;">序号</th>
+                <th style="text-align:center;">部门</th>
+                <th style="text-align:center;">审批人</th>
+                <th style="text-align:center;">状态</th>
+                <th style="text-align:center;">审批意见</th>
+                <th style="text-align:center;">审批时间</th>
+            </tr>
+        </thead>
+        <tbody id="appr_info"></tbody>
+    </table>
+</form>
+<form class="layui-form" id="test" style="display:none">
+    <br />
+    <div class="layui-form-item layui-form-text">
+        <label class="layui-form-label">退回到</label>
+        <div class="layui-input-block">
+            <select name="Thr" id="thrSelect" lay-verify="" lay-filter="thrSelect" lay-search></select>
+        </div>
+    </div>
+</form>
+
+<script>
+    var layer; var form, result;
+    layui.use(['table', 'form'], function () {
+        form = layui.form, layer = layui.layer;
+        form.render();
+    });
+
+    function GetApprNodes() {
+        $.ajax({
+            type: 'get',
+            dataType: 'json',
+            data: {
+                ApprTypeCode: '@ViewBag.ApprTypeCode',
+                SourceId: '@ViewBag.SourceId'
+            },
+            url:@Url.Action("GetApprNodes", "WorkFlow"),
+            success: function (res) {
+                if (res.code == 0) {
+                    //起始节点
+                    var nodes = "<div class=\"sidebar\"><div class=\"bg-div\"></div><ul id=\"ul\">";
+                    if (res.current_note == -99) {
+                        nodes += "<li class=\"active\">< span class=\"point\" ><span class=\"inner\"></span></span ><a class=\"txt_class\">开始</a></li >";
+                    } else {
+                        for (var i = 0; i < res.data.length; i++) {
+                            if (res.data[i].NodeCode == res.current_note) {
+                                nodes += "<li class=\"active\">< span class=\"point\" ><span class=\"inner\"></span></span ><a class=\"txt_class\">" + res.data[i].NodeName +"</a></li >";
+                            } else {
+                                nodes += "<li>< span class=\"point\" ><span class=\"inner\"></span></span ><a class=\"txt_class\">" + res.data[i].NodeName +"</a></li >";
+                            }
+                        }
+                    }
+                    nodes += "</ul></div>";
+                    $("#ApprNode").contents().find("body").append(nodes);
+                } else {
+                    layer.msg(res.msg, { icon: 5 });
+                }
+            },
+            error: function () {
+                layer.msg("请求接口出错，请联系管理员", { icon: 5 });
+            }
+        });
+    }
+</script>
