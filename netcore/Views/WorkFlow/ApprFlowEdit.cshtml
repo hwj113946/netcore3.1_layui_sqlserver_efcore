@@ -54,7 +54,7 @@
                 }
             },
             error: function (res) {
-                layer.msg("加载公司信息出错，请联系管理员", {
+                layer.msg("接口出错，请联系管理员", {
                     icon: 5
                 });
             }
@@ -64,7 +64,9 @@
     layui.use(["layer", "form"], function () {
         layer = layui.layer, form = layui.form;
         form.render();
-        GetApprType(form);
+        if ('@ViewBag.status' == 'add') {
+            GetApprType(form);
+        }
         form.on("submit(btnCommit)", function (data) {
             var ApprTypeId = $('select[name="Type"] option:selected').val();
             var ApprFlowName = $("#ApprFlowName").val();
@@ -126,6 +128,8 @@
             data: { ApprFlowId: '@ViewBag.ApprFlowId' },
             success: function (res) {
                 if (res.code == 0) {
+                    $('#typeSelect').append('<option value="' + res.data.ApprTypeId + '">' + res.data.ApprTypeName + '</option>');
+                    form.render('select');
                     $("#typeSelect option[value='" + res.data.ApprTypeId + "']").prop("selected", true);
                     $("#ApprFlowName").val(res.data.ApprFlowName);
                     $("#Note").val(res.data.Note);

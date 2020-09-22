@@ -559,7 +559,18 @@ namespace netcore.Controllers.WorkFlow
         [HttpGet]
         public async Task<IActionResult> GetApprFlowById(int ApprFlowId)
         {
-            var single = await context.ApprFlows.SingleOrDefaultAsync(u => u.ApprFlowId == ApprFlowId);
+            var single = await (from f in context.ApprFlows
+                                join t in context.ApprTypes
+                                on f.ApprTypeId equals t.ApprTypeId
+                                where f.ApprFlowId.Equals(ApprFlowId)
+                                select new
+                                {
+                                    f.ApprFlowId,
+                                    f.ApprTypeId,
+                                    f.ApprFlowName,
+                                    f.Note,
+                                    t.ApprTypeName
+                                }).SingleOrDefaultAsync();
             return Json(new { code = single == null ? 1 : 0, msg = single == null ? "查询不到该审批流" : "查询成功", count = single == null ? 0 : 1, data = single });
         }
         #endregion
@@ -750,13 +761,29 @@ namespace netcore.Controllers.WorkFlow
                 var modify = await context.FlowLines.SingleOrDefaultAsync(u => u.LineCode == Code);
                 if (modify != null)
                 {
-                    modify.LineName = Name ?? "";
-                    modify.LastModifiedDate = DateTime.Now;
-                    modify.LastModifiedUser = HttpContext.Session.GetInt32("user_id");
-                    context.FlowLines.Update(modify);
-                    await context.SaveChangesAsync();
-                    logger.LogInformation(HttpContext.Session.GetString("who") + "保存连接线名称成功。");
-                    return Json(new { code = 200, msg = "保存成功" });
+                    var flowing = await (from t in context.Apprs
+                                         where
+                                           t.ApprFlowId == modify.ApprFlowId &&
+                                           (new string[] { "审批中" }).Contains(t.Status)
+                                         select new
+                                         {
+                                             t
+                                         }).ToListAsync();
+                    if (flowing.Count > 0)
+                    {
+                        logger.LogInformation(HttpContext.Session.GetString("who") + "检测到该审批流存在审批中的审批，驳回修改请求。");
+                        return Json(new { code = 300, msg = "检测到该审批流存在审批中的审批，驳回修改请求" });
+                    }
+                    else
+                    {
+                        modify.LineName = Name ?? "";
+                        modify.LastModifiedDate = DateTime.Now;
+                        modify.LastModifiedUser = HttpContext.Session.GetInt32("user_id");
+                        context.FlowLines.Update(modify);
+                        await context.SaveChangesAsync();
+                        logger.LogInformation(HttpContext.Session.GetString("who") + "保存连接线名称成功。");
+                        return Json(new { code = 200, msg = "保存成功" });
+                    }
                 }
                 else
                 {
@@ -810,31 +837,47 @@ namespace netcore.Controllers.WorkFlow
         {
             try
             {
-                var values = "";
-                var sql1 = "";
-                switch (Type)
+                var flowing = await (from t in context.Apprs
+                                     where
+                                       t.ApprFlowId == FlowId &&
+                                       (new string[] { "审批中" }).Contains(t.Status)
+                                     select new
+                                     {
+                                         t
+                                     }).ToListAsync();
+                if (flowing.Count > 0)
                 {
-                    case "数字": values = Value; break;
-                    case "文本": values = " '" + Value + "'"; break;
-                    case "日期(yyyy-MM-dd)": values = " CONVERT(varchar(10),'" + Value + "',120)"; break;
+                    logger.LogInformation(HttpContext.Session.GetString("who") + "检测到该审批流存在审批中的审批，驳回修改请求。");
+                    return Json(new { code = 300, msg = "检测到该审批流存在审批中的审批，驳回修改请求" });
                 }
-                switch (ColIf)
+                else
                 {
-                    case "like ": sql1 = ColName + " " + ColIf + " %" + values + "% "; break;
-                    case "not like ": sql1 = ColName + " " + ColIf + " %" + values + "% "; break;
-                    default: sql1 = ColName + " " + ColIf + " " + values; break;
+                    var values = "";
+                    var sql1 = "";
+                    switch (Type)
+                    {
+                        case "数字": values = Value; break;
+                        case "文本": values = " '" + Value + "'"; break;
+                        case "日期(yyyy-MM-dd)": values = " CONVERT(varchar(10),'" + Value + "',120)"; break;
+                    }
+                    switch (ColIf)
+                    {
+                        case "like ": sql1 = ColName + " " + ColIf + " %" + values + "% "; break;
+                        case "not like ": sql1 = ColName + " " + ColIf + " %" + values + "% "; break;
+                        default: sql1 = ColName + " " + ColIf + " " + values; break;
+                    }
+                    await context.FlowLinePros.AddAsync(new FlowLinePro()
+                    {
+                        FlowId = FlowId,
+                        LineCode = LineCode ?? "",
+                        Sql = sql1 ?? "",
+                        CreationDate = DateTime.Now,
+                        CreationUser = HttpContext.Session.GetInt32("user_id")
+                    });
+                    await context.SaveChangesAsync();
+                    logger.LogInformation(HttpContext.Session.GetString("who") + "新增连接线属性成功。");
+                    return Json(new { code = 200, msg = "新增成功" });
                 }
-                await context.FlowLinePros.AddAsync(new FlowLinePro()
-                {
-                    FlowId = FlowId,
-                    LineCode = LineCode ?? "",
-                    Sql = sql1 ?? "",
-                    CreationDate = DateTime.Now,
-                    CreationUser = HttpContext.Session.GetInt32("user_id")
-                });
-                await context.SaveChangesAsync();
-                logger.LogInformation(HttpContext.Session.GetString("who") + "新增连接线属性成功。");
-                return Json(new { code = 200, msg = "新增成功" });
             }
             catch (Exception ex)
             {
@@ -844,23 +887,39 @@ namespace netcore.Controllers.WorkFlow
         }
         #endregion
 
-        #region 新增连接线属性
+        #region 新增连接线属性：sql
         [HttpPost]
         public async Task<IActionResult> InsertLineProSql(int FlowId, string LineCode, string sqls)
         {
             try
             {
-                await context.FlowLinePros.AddAsync(new FlowLinePro()
+                var flowing = await (from t in context.Apprs
+                                     where
+                                       t.ApprFlowId == FlowId &&
+                                       (new string[] { "审批中" }).Contains(t.Status)
+                                     select new
+                                     {
+                                         t
+                                     }).ToListAsync();
+                if (flowing.Count > 0)
                 {
-                    FlowId = FlowId,
-                    LineCode = LineCode ?? "",
-                    Sql = sqls ?? "",
-                    CreationDate = DateTime.Now,
-                    CreationUser = HttpContext.Session.GetInt32("user_id")
-                });
-                await context.SaveChangesAsync();
-                logger.LogInformation(HttpContext.Session.GetString("who") + "新增连接线属性成功。");
-                return Json(new { code = 200, msg = "新增成功" });
+                    logger.LogInformation(HttpContext.Session.GetString("who") + "检测到该审批流存在审批中的审批，驳回修改请求。");
+                    return Json(new { code = 300, msg = "检测到该审批流存在审批中的审批，驳回修改请求" });
+                }
+                else
+                {
+                    await context.FlowLinePros.AddAsync(new FlowLinePro()
+                    {
+                        FlowId = FlowId,
+                        LineCode = LineCode ?? "",
+                        Sql = sqls ?? "",
+                        CreationDate = DateTime.Now,
+                        CreationUser = HttpContext.Session.GetInt32("user_id")
+                    });
+                    await context.SaveChangesAsync();
+                    logger.LogInformation(HttpContext.Session.GetString("who") + "新增连接线属性成功。");
+                    return Json(new { code = 200, msg = "新增成功" });
+                }
             }
             catch (Exception ex)
             {
@@ -879,14 +938,29 @@ namespace netcore.Controllers.WorkFlow
                 var modify = await context.FlowLinePros.SingleOrDefaultAsync(u => u.LineProId == ProId);
                 if (modify != null)
                 {
-
-                    modify.Sql = sqls ?? "";
-                    modify.LastModifiedDate = DateTime.Now;
-                    modify.LastModifiedUser = HttpContext.Session.GetInt32("user_id");
-                    context.FlowLinePros.Update(modify);
-                    await context.SaveChangesAsync();
-                    logger.LogInformation(HttpContext.Session.GetString("who") + "编辑连接线属性成功。");
-                    return Json(new { code = 200, msg = "编辑成功" });
+                    var flowing = await (from t in context.Apprs
+                                         where
+                                           t.ApprFlowId == modify.FlowId &&
+                                           (new string[] { "审批中" }).Contains(t.Status)
+                                         select new
+                                         {
+                                             t
+                                         }).ToListAsync();
+                    if (flowing.Count > 0)
+                    {
+                        logger.LogInformation(HttpContext.Session.GetString("who") + "检测到该审批流存在审批中的审批，驳回修改请求。");
+                        return Json(new { code = 300, msg = "检测到该审批流存在审批中的审批，驳回修改请求" });
+                    }
+                    else
+                    {
+                        modify.Sql = sqls ?? "";
+                        modify.LastModifiedDate = DateTime.Now;
+                        modify.LastModifiedUser = HttpContext.Session.GetInt32("user_id");
+                        context.FlowLinePros.Update(modify);
+                        await context.SaveChangesAsync();
+                        logger.LogInformation(HttpContext.Session.GetString("who") + "编辑连接线属性成功。");
+                        return Json(new { code = 200, msg = "编辑成功" });
+                    }
                 }
                 else
                 {
@@ -910,10 +984,26 @@ namespace netcore.Controllers.WorkFlow
                 var single = await context.FlowLinePros.SingleOrDefaultAsync(u => u.LineProId == id);
                 if (single != null)
                 {
-                    context.FlowLinePros.Remove(single);
-                    await context.SaveChangesAsync();
-                    logger.LogInformation(HttpContext.Session.GetString("who") + "删除连接线属性成功。");
-                    return Json(new { code = 200, msg = "删除成功" });
+                    var flowing = await (from t in context.Apprs
+                                         where
+                                           t.ApprFlowId == single.FlowId &&
+                                           (new string[] { "审批中" }).Contains(t.Status)
+                                         select new
+                                         {
+                                             t
+                                         }).ToListAsync();
+                    if (flowing.Count > 0)
+                    {
+                        logger.LogInformation(HttpContext.Session.GetString("who") + "检测到该审批流存在审批中的审批，驳回修改请求。");
+                        return Json(new { code = 300, msg = "检测到该审批流存在审批中的审批，驳回修改请求" });
+                    }
+                    else
+                    {
+                        context.FlowLinePros.Remove(single);
+                        await context.SaveChangesAsync();
+                        logger.LogInformation(HttpContext.Session.GetString("who") + "删除连接线属性成功。");
+                        return Json(new { code = 200, msg = "删除成功" });
+                    }
                 }
                 else
                 {
@@ -1023,38 +1113,54 @@ namespace netcore.Controllers.WorkFlow
         {
             try
             {
-                var modify = await context.FlowNodePros.SingleOrDefaultAsync(u => u.FlowId == FlowId && u.NodeCode == u.NodeCode);
-                if (modify != null)
+                var flowing = await (from t in context.Apprs
+                                     where
+                                       t.ApprFlowId == FlowId &&
+                                       (new string[] { "审批中" }).Contains(t.Status)
+                                     select new
+                                     {
+                                         t
+                                     }).ToListAsync();
+                if (flowing.Count > 0)
                 {
-                    modify.PageViewUrl = PageViewUrl ?? "";
-                    modify.ApprUserId = ApprUserId;
-                    modify.ApprCorpId = ApprCorpId;
-                    modify.ApprDeptId = ApprDeptId;
-                    modify.ApprPostId = ApprPostId;
-                    modify.LastModifiedDate = DateTime.Now;
-                    modify.LastModifiedUser = HttpContext.Session.GetInt32("user_id");
-                    context.FlowNodePros.Update(modify);
-                    await context.SaveChangesAsync();
-                    logger.LogInformation(HttpContext.Session.GetString("who") + "保存节点属性成功。");
+                    logger.LogInformation(HttpContext.Session.GetString("who") + "检测到该审批流存在审批中的审批，驳回修改请求。");
+                    return Json(new { code = 300, msg = "检测到该审批流存在审批中的审批，驳回修改请求" });
                 }
                 else
                 {
-                    await context.FlowNodePros.AddAsync(new FlowNodePro()
+                    var modify = await context.FlowNodePros.SingleOrDefaultAsync(u => u.FlowId == FlowId && u.NodeCode == u.NodeCode);
+                    if (modify != null)
                     {
-                        FlowId = FlowId,
-                        NodeCode = NodeCode ?? "",
-                        PageViewUrl = PageViewUrl ?? "",
-                        ApprUserId = ApprUserId,
-                        ApprCorpId = ApprCorpId,
-                        ApprDeptId = ApprDeptId,
-                        ApprPostId = ApprPostId,
-                        CreationDate = DateTime.Now,
-                        CreationUser = HttpContext.Session.GetInt32("user_id")
-                    });
-                    await context.SaveChangesAsync();
-                    logger.LogInformation(HttpContext.Session.GetString("who") + "新增节点属性成功。");
-                }
-                return Json(new { code = 200, msg = "保存成功" });
+                        modify.PageViewUrl = PageViewUrl ?? "";
+                        modify.ApprUserId = ApprUserId;
+                        modify.ApprCorpId = ApprCorpId;
+                        modify.ApprDeptId = ApprDeptId;
+                        modify.ApprPostId = ApprPostId;
+                        modify.LastModifiedDate = DateTime.Now;
+                        modify.LastModifiedUser = HttpContext.Session.GetInt32("user_id");
+                        context.FlowNodePros.Update(modify);
+                        await context.SaveChangesAsync();
+                        logger.LogInformation(HttpContext.Session.GetString("who") + "保存节点属性成功。");
+                    }
+                    else
+                    {
+                        await context.FlowNodePros.AddAsync(new FlowNodePro()
+                        {
+                            FlowId = FlowId,
+                            NodeCode = NodeCode ?? "",
+                            PageViewUrl = PageViewUrl ?? "",
+                            ApprUserId = ApprUserId,
+                            ApprCorpId = ApprCorpId,
+                            ApprDeptId = ApprDeptId,
+                            ApprPostId = ApprPostId,
+                            CreationDate = DateTime.Now,
+                            CreationUser = HttpContext.Session.GetInt32("user_id")
+                        });
+                        await context.SaveChangesAsync();
+                        logger.LogInformation(HttpContext.Session.GetString("who") + "新增节点属性成功。");
+                    }
+                    return Json(new { code = 200, msg = "保存成功" });
+                }                
             }
             catch (Exception ex)
             {
@@ -1073,13 +1179,29 @@ namespace netcore.Controllers.WorkFlow
                 var modify = await context.FlowNodes.SingleOrDefaultAsync(u => u.NodeCode == Code);
                 if (modify != null)
                 {
-                    modify.NodeName = Name ?? "";
-                    modify.LastModifiedDate = DateTime.Now;
-                    modify.LastModifiedUser = HttpContext.Session.GetInt32("user_id");
-                    context.FlowNodes.Update(modify);
-                    await context.SaveChangesAsync();
-                    logger.LogInformation(HttpContext.Session.GetString("who") + "保存节点名称成功。");
-                    return Json(new { code = 200, msg = "保存成功" });
+                    var flowing = await (from t in context.Apprs
+                                         where
+                                           t.ApprFlowId == modify.ApprFlowId &&
+                                           (new string[] { "审批中" }).Contains(t.Status)
+                                         select new
+                                         {
+                                             t
+                                         }).ToListAsync();
+                    if (flowing.Count > 0)
+                    {
+                        logger.LogInformation(HttpContext.Session.GetString("who") + "检测到该审批流存在审批中的审批，驳回修改请求。");
+                        return Json(new { code = 300, msg = "检测到该审批流存在审批中的审批，驳回修改请求" });
+                    }
+                    else
+                    {
+                        modify.NodeName = Name ?? "";
+                        modify.LastModifiedDate = DateTime.Now;
+                        modify.LastModifiedUser = HttpContext.Session.GetInt32("user_id");
+                        context.FlowNodes.Update(modify);
+                        await context.SaveChangesAsync();
+                        logger.LogInformation(HttpContext.Session.GetString("who") + "保存节点名称成功。");
+                        return Json(new { code = 200, msg = "保存成功" });
+                    }
                 }
                 else
                 {
@@ -1101,6 +1223,19 @@ namespace netcore.Controllers.WorkFlow
         [HttpPost]
         public async Task<IActionResult> SaveWorkFlow(int FlowId, string JsonData)
         {
+            var flowing = await (from t in context.Apprs
+                              where
+                                t.ApprFlowId == FlowId &&
+                                (new string[] { "审批中"}).Contains(t.Status)
+                              select new
+                              {
+                                  t
+                              }).ToListAsync();
+            if (flowing.Count>0)
+            {
+                logger.LogInformation(HttpContext.Session.GetString("who") + "检测到该审批流存在审批中的审批，驳回修改请求。");
+                return Json(new { code = 300, msg = "检测到该审批流存在审批中的审批，驳回修改请求" });
+            }
             JObject j = JObject.Parse(JsonData);
             JToken jn = (JToken)j["nodes"];
             JToken jl = (JToken)j["lines"];
@@ -1712,6 +1847,41 @@ namespace netcore.Controllers.WorkFlow
                     logger.LogInformation(HttpContext.Session.GetString("who") + "：创建审批流失败。" + ex.Message);
                     return Json(new { code = 300, msg = "创建审批流失败，请联系管理员" });
                 }
+            }
+        }
+        #endregion
+
+        #region 获取退回节点
+        [HttpGet]
+        public async Task<IActionResult> GetBackNodes(int ApprId)
+        {
+            try
+            {
+                var Nodes = await ((from t in context.ApprTrans
+                                    join u in context.AppUsers on new { Submitter = (int)t.Submitter } equals new { Submitter = u.UserId }
+                                    join n in context.FlowNodes
+                                          on new { SubmitNodeId = (int)t.SubmitNodeId, ApprId = (int)t.ApprId, t.Status }
+                                      equals new { SubmitNodeId = n.NodeId, ApprId = ApprId, Status = "同意" }
+                                    select new
+                                    {
+                                        t.TranId,
+                                        SubmitNodeId = (int?)t.SubmitNodeId,
+                                        u.UserId,
+                                        NodeName = (n.NodeName + "：" + u.UserName)
+                                    }).Distinct()).ToListAsync();
+                if (Nodes.Count > 0)
+                {
+                    return Json(new { code = 0, msg = "查询成功", count = Nodes.Count, data = Nodes });
+                }
+                else
+                {
+                    return Json(new { code = 0, msg = "查询成功", count = 0, data = Nodes });
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.LogInformation(HttpContext.Session.GetString("who") + "：查询退回节点出错。" + ex.Message);
+                return Json(new { code = 1, msg = "查询可退回的节点时出错", count = 0, data = new { } });
             }
         } 
         #endregion

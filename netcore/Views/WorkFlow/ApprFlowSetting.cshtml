@@ -161,8 +161,9 @@
         </div>
     </form>
 </body>
+
 <script>
-    var form, layer, jsondata, demo;
+    var form, layer,  demo;
     layui.use(['table', 'form'], function () {
         form = layui.form, layer = layui.layer;
         Refresh();
@@ -261,7 +262,7 @@
     //保存设计
     function Save() {
         document.getElementById("result").value = JSON.stringify(demo.exportData());
-        jsondata = JSON.stringify(demo.exportData());
+        var jsondata = JSON.stringify(demo.exportData());
         $.ajax({
             type: 'post',
             dataType: 'json',

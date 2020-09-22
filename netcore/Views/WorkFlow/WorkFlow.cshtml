@@ -129,12 +129,14 @@
         GetApprNodes();
         GetApprTran();
     });
+
     function ClearChoose() {
         $('input[name=User]').prop('checked', false);
         form.render('radio');
         $("#AssignUser").val("");
         $("#AssignUser").attr("title","");
     }
+
     function GetApprNodes() {
         $.ajax({
             type: 'get',
@@ -185,6 +187,9 @@
                             });
                         });
                         GetNextNodePro(res.NextNodeId);
+                    }
+                    if (res.current_note != -99) {
+                        GetBackNodes();
                     }
                     form.render();
                 } else {
@@ -255,4 +260,72 @@
         });
     }
 
+    function GetBackNodes() {
+        $.ajax({
+            type: 'get',
+            dataType: 'json',
+            data: {
+                ApprId: '@ViewBag.ApprId'
+            },
+            url: '@Url.Action("GetBackNodes", "WorkFlow")',
+            success: function (res) {
+                if (res.code == 0) {
+                    var thr_html = '<option value="-1">发起人</option>';
+                    if (res.count > 0) {
+                        $.each(res.data, function (index, item) {
+                            thr_html += '<option value="' + item.SubmitNodeId + '">' + item.NodeName + '</option>';
+                        });
+                    }
+                    $('#thrSelect').append(thr_html);
+                    $("#thrSelect").val('-1');
+                    form.render('select');
+                } else {
+                    layer.msg(res.msg, { icon: 5 });
+                }
+            }, error: function () {
+                layer.msg("接口出错，请联系管理员", { icon: 5 });
+            }
+        });
+    }
+
+    function btnBack() {
+        if ($("#btnBack").hasClass("layui-btn-disabled")) { return; };
+        layer.open({
+            type: 1,
+            area: ['650px', '300px'],
+            title: '退回'
+            , content: $("#test"),
+            shade: 0,
+            btn: ['确定退回', '取消']
+            , btn1: function (index, layero) {
+                var ii = 0;
+                layer.confirm('确认退回吗？', { btn: ['是', '否'], icon: 3, title: '提示' }, function (index) {
+                    ii++;
+                    if (ii == 1) {
+
+                    }
+                });
+                return false;
+            },
+            btn2: function (index, layero) {
+                $("#backReason").val("");
+                layer.closeAll();
+                return false;
+            },
+            cancel: function (layero, index) {
+                $("#backReason").val("");
+                layer.closeAll();
+            }
+        });
+    }
+
+    function btnPrint(url) {
+        if ($("#btnPrint").hasClass("layui-btn-disabled")) { return; };
+        layer.open({
+            type: 2,
+            area: ['85%', '95%'],
+            title: '打印 - 审批',
+            content: ''
+        });
+    }
 </script>
