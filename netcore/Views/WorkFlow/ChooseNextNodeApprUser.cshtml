@@ -1,0 +1,243 @@
+﻿@{
+    Layout = null;
+}
+
+<script src="~/js/jquery-3.2.1.min.js"></script>
+<script src="~/layui/layui.js"></script>
+<link href="~/layui/css/layui.css" rel="stylesheet" />
+<script src="~/layui/xm-select.js"></script>
+<style>
+    .laytable-cell-radio {
+        padding-top: 15px;
+    }
+</style>
+<div class="layui-form">
+    <br />
+    <div class="layui-form-item">
+        <label class="layui-form-label">审批人公司</label>
+        <div class="layui-input-inline">
+            <select name="Corp" id="corpSelect" lay-verify="" lay-filter="corpSelect" lay-search></select>
+        </div>
+        <label class="layui-form-label">审批人部门</label>
+        <div class="layui-input-inline">
+            <select name="Dept" id="deptSelect" lay-verify="" lay-filter="deptSelect" lay-search></select>
+        </div>
+    </div>
+    <div class="layui-form-item">
+        <label class="layui-form-label">审批人岗位</label>
+        <div class="layui-input-inline">
+            <div id="xm" class="xm-select-demo"></div>
+        </div>
+        <label class="layui-form-label">姓名</label>
+        <div class="layui-input-inline">
+            <input type="text" class="layui-input" id="UserName" placeholder="请输入姓名">
+        </div>
+    </div>
+    <div class="layui-form-item">
+        <label class="layui-form-label"></label>
+        <div class="layui-input-inline">
+            <a class="layui-btn layui-btn-primary" id="btnCommit" onclick="Refresh()">查询</a>
+            <a class="layui-btn layui-btn-primary" id="btnCommit" onclick="ClearChoose()">清除已选</a>
+        </div>
+    </div>
+    <table id="table1" lay-filter="table1"></table>
+</div>
+
+<script>
+    function GetCorp(form) {
+        $.ajax({
+            type: 'get',
+            dataType: 'json',
+            url: '@Url.Action("GetCorp", "Public")',
+            success: function (res) {
+                if (res.code == 0) {
+                    var CorpId = "";
+                    $.each(res.data, function (index, item) {
+                        if (index == 0) {
+                            CorpId = item.CorpId;
+                        }
+                        $('#corpSelect').append('<option value="' + item.CorpId + '">' + item.CorpName + '</option>');
+                    });
+                    GetDept(form, CorpId)
+                    form.render('select');
+                } else {
+                    layer.msg(res.msg, {
+                        icon: 5
+                    });
+                }
+            },
+            error: function (res) {
+                layer.msg("加载公司信息出错，请联系管理员", {
+                    icon: 5
+                });
+            }
+        });
+    }
+    function GetDept(form,value) {
+        document.getElementById("deptSelect").options.length = 0;
+        var CorpId = "";
+        if (value == null || value == "" || value == undefined) {
+            CorpId = $('select[name="Corp"] option:selected').val();
+        } else {
+            CorpId = value;
+        }
+        $.ajax({
+            type: 'get',
+            dataType: 'json',
+            url: '@Url.Action("GetDept", "Public")',
+            data: {
+                CorpId: CorpId
+            },
+            success: function (res) {
+                if (res.code == 0) {
+                    var DeptId = "";
+                    $.each(res.data, function (index, item) {
+                        if (index == 0) {
+                            DeptId = item.DeptId;
+                        }
+                        $('#deptSelect').append('<option value="' + item.DeptId + '">' + item.DeptName + '</option>');
+                    });
+                    if (form != undefined) {
+                        form.render('select');
+                        GetPost(DeptId, null);
+                    }
+                } else {
+                    layer.msg(res.msg, {
+                        icon: 5
+                    });
+                }
+            },
+            error: function (res) {
+                layer.msg("加载部门信息出错，请联系管理员", {
+                    icon: 5
+                });
+            }
+        });
+    }
+    function GetPost(value, cValue) {
+        var DeptId = "-99";
+        if (value == null || value == "" || value == undefined) {
+            DeptId = $('select[name="Dept"] option:selected').val();
+        } else {
+            DeptId = value;
+        }
+        $.ajax({
+            type: 'get',
+            dataType: 'json',
+            url: '@Url.Action("GetPostTree", "Public")',
+            data: { DeptId: DeptId },
+            success: function (res) {
+                if (res.code == 0) {
+                    xm = xmSelect.render({
+                        el: '#xm',
+                        data: res.data,
+                        //显示为text模式
+                        model: { label: { type: 'text' } },
+                        //单选模式
+                        radio: true,
+                        //选中关闭
+                        clickClose: true,
+                        //树
+                        tree: {
+                            show: true,
+                            //非严格模式
+                            strict: false,
+                            //默认展开节点
+                            expandedKeys: [-1],
+                        },
+                        //展开所有节点
+                        expandedKeys: true
+                    });
+                    if (res.data.length > 0) {
+                        if (cValue == null || cValue == "" || cValue == undefined) {
+                            xm.setValue([res.data[0].value]);
+                        } else {
+                            xm.setValue([cValue]);
+                        }
+                    } else {
+                        if (DeptId == null || DeptId == "" || DeptId == undefined) {
+                            GetDept(form, $('select[name="Dept"] option:selected').val());
+                        }
+                    }
+                } else {
+                    layer.msg(res.msg, { icon: 5 });
+                }
+            }, error: function () {
+                layer.msg("接口出错，请联系管理员", { icon: 5 });
+            }
+        });
+    }
+
+    var table, xm, ins,layer, form;
+    layui.use(['table', 'form'], function () {
+        table = layui.table, layer = layui.layer, form = layui.form;
+        form.render();
+        GetCorp(form);
+        GetDept(form);
+        //监听公司下拉框变更
+        form.on('select(corpSelect)', function (data) {
+            GetDept(form, data.value);
+        });
+        //监听部门下拉框变更
+        form.on('select(deptSelect)', function (data) {
+            GetPost(data.value);
+        });
+        ins = table.render({
+            elem: '#table1',
+             cellMinWidth: 120
+            , height: document.documentElement.clientHeight - 80
+            , url: '@Url.Action("GetApprUserList", "WorkFlow")',
+            where: {
+                CorpId: '@ViewBag.CorpId',
+                DeptId: '@ViewBag.DeptId',
+                PostId: '@ViewBag.PostId',
+                UserName: $("#UserName").val()
+            }, method: 'get'
+            , page: true //开启分页
+            , limit: 20
+            , limits: [20, 50, 100]
+            , cols: [[ //表头
+                { type: 'radio', fixed: 'left' }
+                , { field: 'UserId', title: '用户ID', hide: true }
+                , { field: 'CorpId', title: '公司ID', hide: true }
+                , { field: 'DeptId', title: '部门ID', hide: true }
+                , { field: 'PostId', title: '岗位ID', hide: true }
+                , { field: 'UserCode', title: '账号', width: 120, sort: true }
+                , { field: 'UserName', title: '姓名', width: 150, sort: true }
+                , { field: 'Phone', title: '联系电话', width: 120, sort: true }
+                , { field: 'Email', title: 'Email', sort: true }
+            ]], loading: true,
+            done: function () {
+            }
+        });
+
+        table.on('radio(table1)', function (obj) {
+            if (obj.checked == true) {
+                parent.document.getElementById("AssignUser").title = obj.data.UserId;
+                parent.$("#AssignUser").val(obj.data.UserName);
+                parent.layer.close(parent.layer.getFrameIndex(window.name));
+            }
+        });
+    });
+
+    function Refresh() {
+        table.reload("table1", {
+            url: '@Url.Action("GetApprUserList", "WorkFlow")',
+            where: {
+                CorpId: $('select[name="Corp"] option:selected').val(),
+                DeptId: $('select[name="Dept"] option:selected').val(),
+                PostId: xm.getValue('valueStr'),
+                UserName: $("#UserName").val()
+            }, method: "get",
+            page: {
+                curr: 1
+            }
+        });
+    }
+
+    function ClearChoose() {
+        parent.document.getElementById("AssignUser").title = "";
+        parent.$("#AssignUser").val("");
+        parent.layer.close(parent.layer.getFrameIndex(window.name));
+    }
+</script>

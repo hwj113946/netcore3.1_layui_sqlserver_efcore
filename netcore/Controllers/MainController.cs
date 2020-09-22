@@ -75,7 +75,7 @@ namespace netcore.Controllers
                                 MenuType = m.MenuType,
                                 MenuUrl = m.MenuUrl,
                                 ParentMenuId = m.ParentMenuId
-                            }).ToList();
+                            }).OrderBy(u=>u.MenuSort).ToList();
             var json = ToMenuJson(menuList, 0);
             return json;
         }

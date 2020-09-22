@@ -21,6 +21,9 @@ namespace netcore.Controllers.WorkFlow
         private readonly netcore_databaseContext context;
         private readonly ILogger<WorkFlowController> logger;
         private List<FlowNode> NewFlowNodes = null;
+        private int NextNodeId = -99;
+        private string NextNodeName = "";
+        private string NextNodeType = "";
         public WorkFlowController(netcore_databaseContext _context, ILogger<WorkFlowController> _logger)
         {
             context = _context;
@@ -38,6 +41,15 @@ namespace netcore.Controllers.WorkFlow
         public IActionResult FlowNodes()
         {
             ViewBag.ApprId = "";
+            return View();
+        }
+
+        [CheckCustomer]
+        public IActionResult ChooseNextNodeApprUser()
+        {
+            ViewBag.CorpId = HttpContext.Session.GetInt32("CorpId");
+            ViewBag.DeptId = HttpContext.Session.GetInt32("DeptId");
+            ViewBag.PostId = HttpContext.Session.GetInt32("PostId");
             return View();
         }
 
@@ -1335,6 +1347,38 @@ namespace netcore.Controllers.WorkFlow
                 }
                 return "Y";
             }
+        }
+        #endregion
+
+        #region 根据当前节点Id、审批流id、审批流类型、源Id进行获取下一节点Id
+        private async Task<string> GetNextNodeIdByCurrentNode(int NodeId, int FlowId, ApprType apprType, int SourceId)
+        {
+            var Node = await context.FlowNodes.SingleOrDefaultAsync(u => u.NodeId == NodeId && u.ApprFlowId == FlowId);
+            var Lines = await context.FlowLines.Where(u => u.From == Node.NodeCode && u.ApprFlowId == FlowId).ToListAsync();
+            for (int i = 0; i < Lines.Count; i++)
+            {
+                var LinePros = await context.FlowLinePros.Where(u => u.LineCode == Lines[i].LineCode && u.FlowId == FlowId).ToListAsync();
+                var sql = @"select count(*) as n from " + apprType.TableName + " t where " + apprType.TablePkName + " = @SourceId  ";
+                var sqlIf = "";
+                for (int k = 0; k < LinePros.Count; k++)
+                {
+                    sqlIf += " and ( " + LinePros[k].Sql + " )";
+                }
+                sql = sql + sqlIf;
+                var s = context.Database.SqlQuery(sql, new[] { new SqlParameter("@SourceId", SourceId) });
+                if (s.Rows.Count > 0)
+                {
+                    if (s.Rows[0]["n"].ToString() != "0")
+                    {
+                        var nodeInfo = await context.FlowNodes.SingleOrDefaultAsync(u => u.ApprFlowId == FlowId && u.NodeCode == Lines[i].To);
+                        NextNodeId = nodeInfo.NodeId;
+                        NextNodeName = nodeInfo.NodeName;
+                        NextNodeType = nodeInfo.Type;
+                        break;
+                    }
+                }
+            }
+            return "Y";
         } 
         #endregion
 
@@ -1371,6 +1415,8 @@ namespace netcore.Controllers.WorkFlow
                 var node = Nodes.Find(u=>u.Type=="start");
                 //根据开始节点代码、审批流Id、审批类型对象、源Id进行获取所对应走向的节点
                 await GetNode(node.NodeCode, ApprFlow.ApprFlowId, ApprType, SourceId);
+                //根据当前节点Id、审批流id、审批流类型、源Id进行获取下一节点Id
+                await GetNextNodeIdByCurrentNode(node.NodeId,ApprFlow.ApprFlowId,ApprType,SourceId);
                 if (Appr != null)
                 {
                     var ApprTran = await (from a in context.ApprTrans
@@ -1389,10 +1435,10 @@ namespace netcore.Controllers.WorkFlow
                                           }).SingleOrDefaultAsync();
                     if (ApprTran != null)
                     {
-                        return Json(new { code = 0, msg = "查询成功", data = NewFlowNodes, current_note = ApprTran.a.SubmitNodeId });
+                        return Json(new { code = 0, msg = "查询成功", data = NewFlowNodes, current_note = ApprTran.a.SubmitNodeId, NextNodeId = NextNodeId, NextNodeName = NextNodeName, NextNodeType = NextNodeType });
                     }
                 }
-                return Json(new { code = 0, msg = "查询成功", data = NewFlowNodes, current_note = -99 });
+                return Json(new { code = 0, msg = "查询成功", data = NewFlowNodes, current_note = -99, NextNodeId = NextNodeId, NextNodeName = NextNodeName, NextNodeType = NextNodeType });
             }
             catch (Exception ex)
             {
@@ -1404,7 +1450,7 @@ namespace netcore.Controllers.WorkFlow
 
         #region 获取审批流节点信息
         [HttpGet]
-        public async Task<IActionResult> GetNodePro(int NodeId)
+        public async Task<IActionResult> GetNextNodePro(int NodeId)
         {
             try
             {
@@ -1418,60 +1464,61 @@ namespace netcore.Controllers.WorkFlow
                 {
                     return Json(new { code = 1, msg = "节点未设置审批人员信息" });
                 }
-                if (Pro.ApprUserId is null)
+                if (Pro.ApprUserId == 0)
                 {
-                    if (Pro.ApprPostId is null)
+                    if (Pro.ApprPostId == 0)
                     {
-                        if (Pro.ApprDeptId is null)
+                        if (Pro.ApprDeptId == 0)
                         {
-                            if (Pro.ApprCorpId is null)
+                            if (Pro.ApprCorpId == 0)
                             {
                                 return Json(new { code = 1, msg = "节点未设置审批人员信息" });
                             }
                             else
                             {
                                 var user = await context.AppUsers.Where(u => u.CorpId == Pro.ApprCorpId && u.Status == "有效").ToListAsync();
-                                return Json(new { code = 0, msg = "查询成功", data = user, assign = -99 });
+                                return Json(new { code = 0, msg = "查询成功", data = user, assign = -99, UserName = "" });
                             }
                         }
                         else
                         {
                             var user = await context.AppUsers.Where(u => u.DeptId == Pro.ApprDeptId && u.Status == "有效").ToListAsync();
-                            return Json(new { code = 0, msg = "查询成功", data = user, assign = -99 });
+                            return Json(new { code = 0, msg = "查询成功", data = user, assign = -99, UserName = "" });
                         }
                     }
                     else
                     {
                         var user = await context.AppUsers.Where(u => u.PostId == Pro.ApprPostId && u.Status == "有效").ToListAsync();
-                        return Json(new { code = 0, msg = "查询成功", data = user, assign = -99 });
+                        return Json(new { code = 0, msg = "查询成功", data = user, assign = -99, UserName = "" });
                     }
                 }
                 else
                 {
-                    if (Pro.ApprPostId is null)
+                    var UserInfo = await context.AppUsers.SingleOrDefaultAsync(u => u.UserId == Pro.ApprUserId);
+                    if (Pro.ApprPostId == 0)
                     {
-                        if (Pro.ApprDeptId is null)
+                        if (Pro.ApprDeptId == 0)
                         {
-                            if (Pro.ApprCorpId is null)
+                            if (Pro.ApprCorpId == 0)
                             {
                                 return Json(new { code = 1, msg = "节点未设置审批人员信息" });
                             }
                             else
                             {
                                 var user = await context.AppUsers.Where(u => u.CorpId == Pro.ApprCorpId && u.Status == "有效").ToListAsync();
-                                return Json(new { code = 0, msg = "查询成功", data = user, assign = Pro.ApprUserId });
+                                return Json(new { code = 0, msg = "查询成功", data = user, assign = Pro.ApprUserId, UserName = UserInfo.UserName });
                             }
                         }
                         else
                         {
                             var user = await context.AppUsers.Where(u => u.DeptId == Pro.ApprDeptId && u.Status == "有效").ToListAsync();
-                            return Json(new { code = 0, msg = "查询成功", data = user, assign = Pro.ApprUserId });
+                            return Json(new { code = 0, msg = "查询成功", data = user, assign = Pro.ApprUserId, UserName = UserInfo.UserName });
                         }
                     }
                     else
                     {
                         var user = await context.AppUsers.Where(u => u.PostId == Pro.ApprPostId && u.Status == "有效").ToListAsync();
-                        return Json(new { code = 0, msg = "查询成功", data = user, assign = Pro.ApprUserId });
+                        return Json(new { code = 0, msg = "查询成功", data = user, assign = Pro.ApprUserId, UserName = UserInfo.UserName });
                     }
                 }
             }

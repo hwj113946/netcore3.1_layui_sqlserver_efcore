@@ -68,11 +68,12 @@
     </div>
     <div class="layui-form-item" id="assign">
         <label class="layui-form-label">下一审批人</label><div class="layui-input-inline">
-            <input class="layui-input" id="AssignUser" type="text" placeholder="单击弹出审批人选择" readonly onclick="ChooseNextApprUser()" />
+            <input class="layui-input" id="AssignUser" type="text" placeholder="单击弹出审批人选择" readonly/>
         </div>
-        @*<label class="layui-form-label">下一环节</label><div class="layui-input-inline">
-            <input class="layui-input" id="NextNodeName" type="text" readonly />
-        </div>*@
+        <div class="layui-input-inline"><a class="layui-btn  layui-btn-danger" onclick="ClearChoose()">清除已选</a></div>
+        <label class="layui-form-label">下一环节</label><div class="layui-input-inline">
+            <input class="layui-input" id="NextNodeName" type="text" placeholder="下一环节" readonly />
+        </div>
     </div>
     <div class="layui-form-item">
         <label class="layui-form-label">审批节点</label>
@@ -121,10 +122,19 @@
     layui.use(['table', 'form'], function () {
         form = layui.form, layer = layui.layer;
         form.render();
+        form.on('radio(UserRadio)', function (data) {
+            $("#AssignUser").val(data.elem.title);
+            $("#AssignUser").attr("title", data.value);
+        });
         GetApprNodes();
         GetApprTran();
     });
-
+    function ClearChoose() {
+        $('input[name=User]').prop('checked', false);
+        form.render('radio');
+        $("#AssignUser").val("");
+        $("#AssignUser").attr("title","");
+    }
     function GetApprNodes() {
         $.ajax({
             type: 'get',
@@ -161,6 +171,21 @@
                         }
                     }
                     $("#ApprNode").contents().find("body").append(nodes);
+                    $("#NextNodeName").val(res.NextNodeName);
+                    if (res.NextNodeType != "end") {
+                        $("#AssignUser").click(function () {
+                            //if (res.NextNodeType == "end") {
+                            //    layer.msg("下一节点为结束节点，不需要选人员", { icon: 5 }); return;
+                            //}
+                            layer.open({
+                                type: 2,
+                                area: ['95%', '95%'],
+                                title: "选择人员",
+                                content: '@Url.Action("ChooseNextNodeApprUser", "WorkFlow")'
+                            });
+                        });
+                        GetNextNodePro(res.NextNodeId);
+                    }
                     form.render();
                 } else {
                     layer.msg(res.msg, { icon: 5 });
@@ -199,4 +224,35 @@
             }
         });
     }
+
+    function GetNextNodePro(NodeId) {
+        $.ajax({
+            type: 'get',
+            dataType: 'json',
+            data: {
+                NodeId: NodeId
+            },
+            url: '@Url.Action("GetNextNodePro", "WorkFlow")',
+            success: function (res) {
+                if (res.code == 0) {
+                    var PersonRadio = "";
+                    if (res.assign != -99) {
+                        $("#zdyry").css("display", "none");
+                    }
+                    $("#AssignUser").val(res.UserName);
+                    $("#AssignUser").attr("title", res.assign);
+                    for (var i = 0; i < res.data.length; i++) {
+                        PersonRadio += '<input type="radio" lay-filter=\"UserRadio\" name="User" value="' + res.data[i].UserId + '" title="' + res.data[i].UserName + '">'
+                    }
+                    $("#div_person").append(PersonRadio);
+                    form.render();
+                } else {
+                    layer.msg(res.msg, { icon: 5 });
+                }
+            }, error: function () {
+                layer.msg("接口出错，请联系管理员", { icon: 5 });
+            }
+        });
+    }
+
 </script>
