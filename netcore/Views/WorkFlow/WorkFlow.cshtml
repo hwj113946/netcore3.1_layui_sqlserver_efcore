@@ -4,7 +4,8 @@
 <script src="~/js/jquery-3.2.1.min.js"></script>
 <script src="~/layui/layui.js"></script>
 <link href="~/layui/css/layui.css" rel="stylesheet" />
-
+<link href="~/css/ystep.css" rel="stylesheet" />
+<script src="~/js/ystep.js"></script>
 <form class="layui-form">
     <br />
     <div class="layui-form-item">
@@ -50,7 +51,7 @@
         <label class="layui-form-label">发布人</label><div class="layui-input-inline">
             <input class="layui-input" id="UserName" type="text" readonly />
         </div>
-        <label class="layui-form-label">联系电话</label><div class="layui-input-block">
+        <label class="layui-form-label">联系电话</label><div class="layui-input-inline">
             <input class="layui-input" id="Phone" type="text" autocomplete="off" readonly />
         </div>
         <label class="layui-form-label">发布时间</label><div class="layui-input-inline">
@@ -69,35 +70,40 @@
         <label class="layui-form-label">下一审批人</label><div class="layui-input-inline">
             <input class="layui-input" id="AssignUser" type="text" placeholder="单击弹出审批人选择" readonly onclick="ChooseNextApprUser()" />
         </div>
-        <label class="layui-form-label">下一环节</label><div class="layui-input-inline">
-            <input class="layui-input" id="NextNodeName" type="text"  readonly />
-        </div>
+        @*<label class="layui-form-label">下一环节</label><div class="layui-input-inline">
+            <input class="layui-input" id="NextNodeName" type="text" readonly />
+        </div>*@
     </div>
     <div class="layui-form-item">
-        <label class="layui-form-label">审批节点</label><div class="layui-input-block">
-            <iframe id="ApprNote" width="98%" height="60" marginheight="0" marginwidth="0"></iframe>
+        <label class="layui-form-label">审批节点</label>
+        <div class="layui-input-block" >
+            <iframe id="ApprNode" width="98%" src="/WorkFlow/FlowNodes" height="80" marginheight="0" marginwidth="0"></iframe>
         </div>
     </div>
     <table class="layui-table" lay-size="sm">
         <colgroup>
             <col width="5%" />
             <col width="10%" />
-            <col width="10%" />
-            <col width="10%" />
-            <col width="55%" />
+            <col width="8%" />
+            <col width="8%" />
+            <col width="8%" />
+            <col width="8%" />
+            <col width="43%" />
             <col width="10%" />
         </colgroup>
         <thead>
             <tr>
                 <th style="text-align:center;">序号</th>
+                <th style="text-align:center;">公司</th>
                 <th style="text-align:center;">部门</th>
+                <th style="text-align:center;">岗位</th>
                 <th style="text-align:center;">审批人</th>
                 <th style="text-align:center;">状态</th>
                 <th style="text-align:center;">审批意见</th>
                 <th style="text-align:center;">审批时间</th>
             </tr>
         </thead>
-        <tbody id="appr_info"></tbody>
+        <tbody id="ApprTran"></tbody>
     </table>
 </form>
 <form class="layui-form" id="test" style="display:none">
@@ -115,6 +121,8 @@
     layui.use(['table', 'form'], function () {
         form = layui.form, layer = layui.layer;
         form.render();
+        GetApprNodes();
+        GetApprTran();
     });
 
     function GetApprNodes() {
@@ -122,33 +130,72 @@
             type: 'get',
             dataType: 'json',
             data: {
-                ApprTypeCode: '@ViewBag.ApprTypeCode',
-                SourceId: '@ViewBag.SourceId'
+                ApprTypeCode: 'UserAppr1',//'@ViewBag.ApprTypeCode',
+                SourceId: 1//'@ViewBag.SourceId'
             },
-            url:@Url.Action("GetApprNodes", "WorkFlow"),
+            url: '@Url.Action("GetApprNodes", "WorkFlow")',
             success: function (res) {
                 if (res.code == 0) {
                     //起始节点
-                    var nodes = "<div class=\"sidebar\"><div class=\"bg-div\"></div><ul id=\"ul\">";
-                    if (res.current_note == -99) {
-                        nodes += "<li class=\"active\">< span class=\"point\" ><span class=\"inner\"></span></span ><a class=\"txt_class\">开始</a></li >";
-                    } else {
-                        for (var i = 0; i < res.data.length; i++) {
-                            if (res.data[i].NodeCode == res.current_note) {
-                                nodes += "<li class=\"active\">< span class=\"point\" ><span class=\"inner\"></span></span ><a class=\"txt_class\">" + res.data[i].NodeName +"</a></li >";
+                    var nodes = "";
+                    var n = -70;
+                    var m = -5;
+                    for (var i = 0; i < res.data.length; i++) {
+                        n = n + 90;
+                        m = m + 90;
+                        if (res.data[i].NodeCode == res.current_note) {
+                            nodes += "<div  style='position: absolute; width: 70px; left: " + n + "px;text-align: center;'> <img  src='../../images/person_finish.png' style='height: 37px; width: 35px'  /><div  style='background:#66FFCC;color:#000000; font-size: small;'>" + res.data[i].NodeName + "</div>   </div>";
+                        } else {
+                            if (res.current_note == -99) {
+                                if (res.data[i].Type == "start") {
+                                    nodes += "<div  style='position: absolute; width: 70px; left: " + n + "px;text-align: center;'> <img  src='../../images/person_finish.png' style='height: 37px; width: 35px'  /><div  style='background:#66FFCC;color:#000000; font-size: small;'>" + res.data[i].NodeName + "</div>   </div>";
+                                } else {
+                                    nodes += "<div  style='position: absolute; width: 70px; left: " + n + "px;text-align: center;'> <img  src='../../images/person.png' style='height: 37px; width: 35px'  /><div  style='background:#CCCCFF;color:#000000; font-size: small;'>" + res.data[i].NodeName + "</div>   </div>";
+                                }
                             } else {
-                                nodes += "<li>< span class=\"point\" ><span class=\"inner\"></span></span ><a class=\"txt_class\">" + res.data[i].NodeName +"</a></li >";
+                                nodes += "<div  style='position: absolute; width: 70px; left: " + n + "px;text-align: center;'> <img  src='../../images/person.png' style='height: 37px; width: 35px'  /><div  style='background:#CCCCFF;color:#000000; font-size: small;'>" + res.data[i].NodeName + "</div>   </div>";
                             }
                         }
+                        if (i != res.data.length - 1) {
+                            nodes += "<div  style='position: absolute; width: 20px; left: " + m + "px; text-align: center; vertical-align: middle; height: 100px;'><img alt='' src='../../images/right.png' style='height: 37px; width: 35px'  /></div>";
+                        }
                     }
-                    nodes += "</ul></div>";
                     $("#ApprNode").contents().find("body").append(nodes);
+                    form.render();
                 } else {
                     layer.msg(res.msg, { icon: 5 });
                 }
             },
             error: function () {
                 layer.msg("请求接口出错，请联系管理员", { icon: 5 });
+            }
+        });
+    }
+
+    function GetApprTran() {
+        if ('@ViewBag.ApprId' == '') {
+            $("#ApprTran").append("<td colspan=\"8\" align=\"center\">暂无数据</td>");
+            return;
+        }
+        $.ajax({
+            type: 'get',
+            dataType: 'json',
+            data: {
+                ApprId: '@ViewBag.ApprId'
+            },
+            url: '@Url.Action("GetApprTran", "WorkFlow")',
+            success: function (res) {
+                if (res.code == 0) {
+                    var tables = "";
+                    for (var i = 0; i < res.data.length; i++) {
+                        tables += "<tr><td>" + res.data[i].TranNumber + "</td><td>" + res.data[i].CorpName + "</td><td>" + res.data[i].DeptName + "</td><td>" + res.data[i].PostName + "</td><td>" + res.data[i].UserName + "</td><td>" + res.data[i].Status + "</td><td style='word-break:break-all; word-wrap:break-word;'>" + (res.data[i].ApprNote == null ? "" : res.data[i].ApprNote) + "</td><td>" + res.data[i].SubmissionTime + "</td></tr>";
+                    }
+                    $("#ApprTran").append(tables);
+                } else {
+                    layer.msg(res.msg, { icon: 5 });
+                }
+            }, error: function () {
+                layer.msg("接口出错，请联系管理员", { icon: 5 });
             }
         });
     }

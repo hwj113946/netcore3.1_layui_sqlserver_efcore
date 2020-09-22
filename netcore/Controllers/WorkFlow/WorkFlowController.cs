@@ -28,6 +28,19 @@ namespace netcore.Controllers.WorkFlow
             NewFlowNodes = new List<FlowNode>();
         }
 
+        [CheckCustomer]
+        public IActionResult WorkFlow()
+        {
+            return View();
+        }
+
+        [CheckCustomer]
+        public IActionResult FlowNodes()
+        {
+            ViewBag.ApprId = "";
+            return View();
+        }
+
         #region 审批流类型
         [CheckCustomer]
         public IActionResult ApprType()
@@ -1477,7 +1490,24 @@ namespace netcore.Controllers.WorkFlow
         {
             try
             {
-                var tran = await context.ApprTrans.Where(u => u.ApprId == ApprId).ToListAsync();
+                var tran = await (from t in context.ApprTrans
+                                  join c in context.AppCorps on new { SubmitterCorp = (int)t.SubmitterCorp } equals new { SubmitterCorp = c.CorpId }
+                                  join d in context.AppDepts on new { SubmitterDept = (int)t.SubmitterDept } equals new { SubmitterDept = d.DeptId }
+                                  join p in context.AppPosts on new { SubmitterPost = (int)t.SubmitterPost } equals new { SubmitterPost = p.PostId }
+                                  join u in context.AppUsers
+                                        on new { Submitter = (int)t.Submitter, ApprId = (int)t.ApprId }
+                                    equals new { Submitter = u.UserId, ApprId = ApprId }
+                                  select new
+                                  {
+                                      t.ApprNote,
+                                      t.Status,
+                                      t.SubmissionTime,
+                                      t.TranNumber,
+                                      c.CorpName,
+                                      d.DeptName,
+                                      p.PostName,
+                                      u.UserName
+                                  }).ToListAsync();
                 if (tran.Count > 0)
                 {
                     return Json(new { code = 0, msg = "查询成功", count = tran.Count, data = tran });
