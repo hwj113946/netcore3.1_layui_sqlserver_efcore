@@ -1285,6 +1285,11 @@ namespace netcore.Controllers.WorkFlow
             }
             else
             {
+                if (lines.Count==0)
+                {
+                    logger.LogInformation(HttpContext.Session.GetString("who") + "检测到设计中不存在连接线，驳回保存。");
+                    return Json(new { code = 200, msg = "不存在连接线，驳回保存" });
+                }
                 bool flag = false;
                 using (var tran = context.Database.BeginTransaction())
                 {
