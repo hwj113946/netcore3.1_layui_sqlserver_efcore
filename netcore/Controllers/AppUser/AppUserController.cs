@@ -55,6 +55,12 @@ namespace netcore.Controllers.AppUser
             return View();
         }
 
+        [CheckCustomer]
+        public IActionResult AppUserInfoView()
+        {
+            return View();
+        }
+
         #region 获取列表
         [HttpGet]
         public async Task<IActionResult> GetList(int CorpId, int DeptId, string Status, string UserCode, string UserName,
@@ -911,5 +917,45 @@ namespace netcore.Controllers.AppUser
             }
         }
         #endregion
+
+        #region 根据ID获取信息
+        [HttpGet]
+        public async Task<IActionResult> GetUserInfoByUserId()
+        {
+            try
+            {
+                var single = await (from u in context.AppUsers
+                                    join c in context.AppCorps on new { CorpId = (int)u.CorpId } equals new { CorpId = c.CorpId }
+                                    join d in context.AppDepts on new { DeptId = (int)u.DeptId } equals new { DeptId = d.DeptId }
+                                    join p in context.AppPosts on new { PostId = (int)u.PostId, u.UserId }
+                                    equals new { PostId = p.PostId, UserId = (int)HttpContext.Session.GetInt32("user_id") }
+                                    select new
+                                    {
+                                        u.UserCode,
+                                        u.UserName,
+                                        u.Email,
+                                        u.Phone,
+                                        c.CorpName,
+                                        d.DeptName,
+                                        p.PostName
+                                    }).SingleOrDefaultAsync();
+                var roles = await (from ur in context.AppUserRoles
+                                    join r in context.AppRoles
+                                          on new { ur.RoleId, ur.UserId }
+                                      equals new { r.RoleId, UserId = (int)HttpContext.Session.GetInt32("user_id") }
+                                    select new
+                                    {
+                                        r.RoleName
+                                    }).ToListAsync();
+                return Json(new { code = single == null ? 1 : 0, msg = single == null ? "查询不到该用户信息" : "查询成功", count = single == null ? 0 : 1, data = single,roles=roles });
+            }
+            catch (Exception ex)
+            {
+                logger.LogInformation(HttpContext.Session.GetString("who")+"：根据ID获取用户信息失败。"+ex.Message);
+                return Json(new { code = 1, msg = "查询失败，请联系管理员", count = 0, data = new { },roles=new { } });
+            }
+        }
+        #endregion
+
     }
 }

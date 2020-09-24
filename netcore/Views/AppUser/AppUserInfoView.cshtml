@@ -1,5 +1,93 @@
-﻿@*
-    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
-*@
-@{
+﻿@{
+    Layout = null;
 }
+
+<script src="~/js/jquery-3.2.1.min.js"></script>
+<script src="~/layui/layui.js"></script>
+<link href="~/layui/css/layui.css" rel="stylesheet" />
+
+<div class="layui-form">
+    <br />
+    <div class="layui-form-item">
+        <div class="layui-inline">
+            <label class="layui-form-label">账号</label>
+            <div class="layui-input-inline">
+                <input type="text" class="layui-input" readonly="readonly" id="UserCode">
+            </div>
+            <label class="layui-form-label">姓名</label>
+            <div class="layui-input-inline">
+                <input type="text" class="layui-input" id="UserName" readonly="readonly">
+            </div>
+            <label class="layui-form-label">Email</label>
+            <div class="layui-input-inline">
+                <input type="text" id="Email" readonly="readonly" class="layui-input">
+            </div>
+        </div>
+    </div>
+    <div class="layui-form-item">
+        <label class="layui-form-label">手机号码</label>
+        <div class="layui-input-inline">
+            <input type="text" class="layui-input" readonly="readonly" id="Phone">
+        </div>
+        <label class="layui-form-label">公司</label>
+        <div class="layui-input-inline">
+            <input type="text" class="layui-input" readonly="readonly" id="CorpName">
+        </div>
+        <label class="layui-form-label">部门</label>
+        <div class="layui-input-inline">
+            <input type="text" class="layui-input" readonly="readonly" id="DeptName">
+        </div>
+    </div>
+    <div class="layui-form-item">
+        <label class="layui-form-label">岗位</label>
+        <div class="layui-input-inline">
+            <input type="text" class="layui-input" readonly="readonly" id="PostName">
+        </div>
+    </div>
+    <div class="layui-collapse" lay-accordion="">
+        <div class="layui-colla-item">
+            <h2 class="layui-colla-title">所拥有角色</h2>
+            <div class="layui-colla-content layui-show" id="Roles">
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    var layer, form;
+    layui.use('form', function () {
+        layer = layui.layer, form = layui.form;
+        form.render();
+    });
+    $(document).ready(function () {
+        $.ajax({
+            type: 'get',
+            dataType: 'json',
+            url: '@Url.Action("GetUserInfoByUserId", "AppUser")',
+            success: function (res) {
+                if (res.code == 0) {
+                    $("#UserCode").val(res.data.UserCode);
+                    $("#UserName").val(res.data.UserName);
+                    $("#Email").val(res.data.Email);
+                    $("#Phone").val(res.data.Phone);
+                    $("#CorpName").val(res.data.CorpName);
+                    $("#DeptName").val(res.data.DeptName);
+                    $("#PostName").val(res.data.PostName);
+                    var RoleHtml = "";
+                    for (var i = 0; i < res.roles.length; i++) {
+                        RoleHtml += "<p class=\"layui-btn layui-btn-sm\">" + res.roles[i].RoleName + "</p>";
+                    }
+                    $("#Roles").append(RoleHtml);
+                } else {
+                    layer.msg(res.msg, {
+                        icon: 5
+                    });
+                }
+            },
+            error: function (res) {
+                layer.msg("请求接口出错，请联系管理员", {
+                    icon: 5
+                });
+            }
+        });
+    });
+</script>
