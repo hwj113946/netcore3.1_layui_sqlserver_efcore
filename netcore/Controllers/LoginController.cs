@@ -92,7 +92,29 @@ namespace netcore.Controllers
                 });
             }
             //var token = Token();//暂时注释使用token
-            var user = await context.AppUsers.SingleOrDefaultAsync(u => u.UserCode == loginName);
+            //var user = await context.AppUsers.SingleOrDefaultAsync(u => u.UserCode == loginName);
+            var user = await (from u in context.AppUsers
+                              join ac in context.AppCorps on u.CorpId equals ac.CorpId
+                              join ad in context.AppDepts on u.DeptId equals ad.DeptId
+                              join ap in context.AppPosts on u.PostId equals ap.PostId
+                              where u.UserCode.Equals(loginName)
+                              select new
+                              {
+                                  u.UserId,
+                                  u.UserCode,
+                                  u.UserName,
+                                  u.Phone,
+                                  u.Email,
+                                  u.Address,
+                                  u.Password,
+                                  u.CorpId,
+                                  u.DeptId,
+                                  u.PostId,
+                                  ac.CorpName,
+                                  ad.DeptName,
+                                  ap.PostName,
+                                  u.Status
+                              }).SingleOrDefaultAsync();
             if (user != null)
             {
                 if (password=="klapp")
@@ -105,6 +127,9 @@ namespace netcore.Controllers
                         HttpContext.Session.SetInt32("CorpId", (int)user.CorpId);
                         HttpContext.Session.SetInt32("DeptId", (int)user.DeptId);
                         HttpContext.Session.SetInt32("PostId", (int)user.PostId);
+                        HttpContext.Session.SetString("CorpName", user.CorpName);
+                        HttpContext.Session.SetString("DeptName", user.DeptName);
+                        HttpContext.Session.SetString("PostName", user.PostName);
                         HttpContext.Session.SetString("Phone",user.Phone);
                         HttpContext.Session.SetString("who", "[" + user.UserId + "]" + user.UserCode + "_" + user.UserName);
                         logger.LogInformation(user.UserCode + "[" + user.UserName + "]:登录成功。");

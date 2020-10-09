@@ -34,6 +34,11 @@ namespace netcore.Controllers.WorkFlow
         [CheckCustomer]
         public IActionResult WorkFlow()
         {
+            ViewBag.CorpName = HttpContext.Session.GetString("CorpName");
+            ViewBag.DeptName = HttpContext.Session.GetString("DeptName");
+            ViewBag.PostName = HttpContext.Session.GetString("PostName");
+            ViewBag.UserName = HttpContext.Session.GetString("user_name");
+            ViewBag.Phone = HttpContext.Session.GetString("Phone");
             return View();
         }
 
@@ -1862,7 +1867,7 @@ namespace netcore.Controllers.WorkFlow
         {
             try
             {
-                var Nodes = await ((from t in context.ApprTrans
+                var Nodes = await (from t in context.ApprTrans
                                     join u in context.AppUsers on new { Submitter = (int)t.Submitter } equals new { Submitter = u.UserId }
                                     join n in context.FlowNodes
                                           on new { SubmitNodeId = (int)t.SubmitNodeId, ApprId = (int)t.ApprId, t.Status }
@@ -1873,7 +1878,7 @@ namespace netcore.Controllers.WorkFlow
                                         SubmitNodeId = (int?)t.SubmitNodeId,
                                         u.UserId,
                                         NodeName = (n.NodeName + "：" + u.UserName)
-                                    }).Distinct()).ToListAsync();
+                                    }).Distinct().ToListAsync();
                 if (Nodes.Count > 0)
                 {
                     return Json(new { code = 0, msg = "查询成功", count = Nodes.Count, data = Nodes });
