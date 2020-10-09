@@ -28,6 +28,12 @@ namespace netcore.Controllers
             logger = _logger;
             jwt = _jwt.Value;
         }
+
+        public IActionResult Login()
+        {
+            HttpContext.Session.Clear();
+            return View();
+        }
         public IActionResult Index()
         {
             HttpContext.Session.Clear();

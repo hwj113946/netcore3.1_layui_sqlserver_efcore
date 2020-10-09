@@ -13,7 +13,7 @@ namespace netcore
         {
             if (filterContext.HttpContext.Session.GetInt32("user_id") == null)//判断session是否为null
             {
-                filterContext.HttpContext.Response.Redirect("/Login/Index");//跳转到登陆界面
+                filterContext.HttpContext.Response.Redirect("/Login/Login");//跳转到登陆界面
             }
         }
     }
