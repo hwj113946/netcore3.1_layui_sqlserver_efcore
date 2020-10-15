@@ -29,6 +29,11 @@ namespace netcore.Controllers
             jwt = _jwt.Value;
         }
 
+        public IActionResult Login1()
+        {
+            HttpContext.Session.Clear();
+            return View();
+        }
         public IActionResult Login()
         {
             HttpContext.Session.Clear();
